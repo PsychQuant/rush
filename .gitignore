@@ -7,3 +7,5 @@ DerivedData/
 *.log
 mcpb/server/CheTransportMCP
 mcpb/*.mcpb
+.spectra/
+openspec/.vector-search.db*

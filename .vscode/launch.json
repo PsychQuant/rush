@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:che-transport-mcp}",
+            "name": "Debug CheTransportMCP",
+            "target": "CheTransportMCP",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug CheTransportMCP"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:che-transport-mcp}",
+            "name": "Release CheTransportMCP",
+            "target": "CheTransportMCP",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release CheTransportMCP"
+        }
+    ]
+}
