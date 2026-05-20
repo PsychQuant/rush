@@ -29,7 +29,7 @@ enum TDXError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .authFailed(let msg): return "TDX auth failed: \(msg). Run: make setup-tdx"
-        case .rateLimited: return "TDX rate limit exceeded; retry in 60s"
+        case .rateLimited: return "TDX rate limit exceeded after retry; please slow request rate or wait for the per-minute window to reset"
         case .http(let code, let msg): return "TDX HTTP \(code): \(msg)"
         case .decoding(let msg): return "TDX response format changed: \(msg). Please file an issue."
         case .network(let msg): return "Network error: \(msg). Check connection."

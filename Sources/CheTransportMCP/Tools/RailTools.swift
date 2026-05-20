@@ -269,16 +269,34 @@ enum RailTools {
             return RailSystem.allCases
         }()
 
+        // Fan out per-system station fetches in parallel. Cold-cache cost drops from
+        // ~Nx sequential RTTs to one. Cache hits short-circuit inside fetch(), so
+        // steady-state is unaffected. 8 parallel requests sits well under TDX's 50/min.
+        let perSystemResults = try await withThrowingTaskGroup(of: (RailSystem, [RailStation]).self) { group in
+            for sys in systemFilter {
+                group.addTask {
+                    let data = try await client.fetch(
+                        path: "\(sys.apiPath)/Station",
+                        cacheTTL: 86400,
+                        cache: cache
+                    )
+                    return (sys, Self.decodeStationList(data: data))
+                }
+            }
+            var collected: [(RailSystem, [RailStation])] = []
+            for try await result in group {
+                collected.append(result)
+            }
+            return collected
+        }
+        // Stable ordering: TaskGroup completion order is non-deterministic, so re-sort
+        // by RailSystem.allCases index so the LLM sees consistent output across calls.
+        let orderIndex = Dictionary(uniqueKeysWithValues: RailSystem.allCases.enumerated().map { ($1, $0) })
+        let ordered = perSystemResults.sorted { (orderIndex[$0.0] ?? 0) < (orderIndex[$1.0] ?? 0) }
+
         var allMatches: [[String: Any]] = []
-        for sys in systemFilter {
-            let data = try await client.fetch(
-                path: "\(sys.apiPath)/Station",
-                cacheTTL: 86400,
-                cache: cache
-            )
-            let stations = Self.decodeStationList(data: data)
-            let matches = Self.fuzzyMatch(query: query, in: stations)
-            for m in matches {
+        for (sys, stations) in ordered {
+            for m in Self.fuzzyMatch(query: query, in: stations) {
                 allMatches.append([
                     "system": sys.rawValue,
                     "station_id": m.stationID,

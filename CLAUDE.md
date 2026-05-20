@@ -90,6 +90,7 @@ This script prompts for TDX `client_id` / `client_secret`（at <https://tdx.tran
 - `rail_find_trains(from, to, date, system)` — O/D 找班次
 - `rail_status_train(train_no, system)` — 特定列車即時誤點
 - `rail_status_station(station_id, system)` — 站到站板（即時）
+  - Note: `window_min` 參數在 schema 中接受（forward-compatibility），但目前 **未生效** — TDX `StationLiveBoard` endpoint 自帶預設視窗。Client-side 視窗過濾預計 v0.3 加入。
 
 See `docs/superpowers/specs/2026-05-20-che-transport-mcp-design.md` for full design.
 

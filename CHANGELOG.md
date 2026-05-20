@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `rail_search_stations` 在未指定 `system` 時改用 `withThrowingTaskGroup` 平行抓取 8 個 system 的 station 列表，cold cache 首次呼叫延遲大幅下降；TaskGroup yield order 非確定，故額外按 `RailSystem.allCases` 重排以保持輸出穩定（backlog A3）
+- `Cache` actor 引入預設 1000 筆的 LRU 上限（`maxEntries` 可注入），含 keyOrder bookkeeping 與 TTL 過期同步清理，避免長時 session 記憶體無界成長；行為向後相容（既有 3 個 cache test 不需改動）（backlog A4）
+
+### Fixed
+
+- `TDXError.rateLimited` 錯誤訊息誤導：原本說「retry in 60s」但實際只 retry 一次（1s sleep）。改為描述真實行為與 TDX per-minute window（backlog A1）
+- `rail_status_station` 的 `window_min` 在 schema 接受但 TDX endpoint 自帶預設視窗、client 並未過濾 — 在 `CLAUDE.md` 工具清單下加 forward-compatibility 註記（backlog A2）
+
 ### Planned (v0.2)
 
 - Bus tools (5): search_routes / search_stops / find_routes / status_arrivals / status_positions
