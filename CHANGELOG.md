@@ -7,21 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### ToolRegistry (architecture)
+
+- New `ToolRegistry` actor aggregates `[Tool]` + per-name dispatchers across mode modules. MCP swift-sdk only allows one `withMethodHandler(ListTools.self)` / `withMethodHandler(CallTool.self)` per Server — the registry lets each mode `register(into:)` append without overwriting. Server.swift now installs the two MCP handlers exactly once.
+
+#### Bus tools (5) — city-scoped, 22 BusCity codes
+
+- `bus_search_routes` / `bus_search_stops` — fuzzy match with 臺/台 normalization
+- `bus_find_routes` — O/D intersection via `/v2/Bus/StopOfRoute/City/{City}`
+- `bus_status_arrivals` — ETA at stop via EstimatedTimeOfArrival + `$filter`
+- `bus_status_positions` — live positions via RealTimeNearStop
+- City required (not optional): 22 parallel fan-out would exceed TDX 50/min, and "中山路" exists in many cities — disambiguation needed
+
+#### Bike tools (3) — YouBike 1.0 + 2.0
+
+- `bike_search_stations` — name search + optional `service_type` filter
+- `bike_stations_nearby` — haversine distance sort + live availability join, radius clamped to [50, 3000] m
+- `bike_status_station` — single-station live rent/return count
+
+#### Air tools (3) — IATA-coded
+
+- `air_list_airports` — Taiwan airport master
+- `air_find_flights` — schedule lookup by airport + Arrival/Departure (10-min cache)
+- `air_status_flights` — live FIDS board (no cache)
+- IATA 3-letter validation with case-insensitive uppercase normalization
+
+#### Maritime tools (2) — operator-scoped
+
+- `maritime_list_routes` — route master, optional operator_id filter
+- `maritime_status_schedule` — raw TDX JSON pass-through wrapped in `{route_id, raw}` envelope (per-operator schema varies)
+
+#### Traffic tools (3)
+
+- `traffic_freeway_live` — section-level speed / travel time / congestion (no cache)
+- `traffic_incidents` — 5-min cached news feed with client-side keyword filter
+- `traffic_cctv` — 24h cached CCTV inventory with stream URLs
+
+#### Parking tools (2) — 22 ParkingCity codes
+
+- `parking_list_lots` — off-street car park master with keyword filter
+- `parking_status` — live available-spaces lookup with optional lot_id filter
+
 ### Changed
 
 - `rail_search_stations` 在未指定 `system` 時改用 `withThrowingTaskGroup` 平行抓取 8 個 system 的 station 列表，cold cache 首次呼叫延遲大幅下降；TaskGroup yield order 非確定，故額外按 `RailSystem.allCases` 重排以保持輸出穩定（backlog A3）
 - `Cache` actor 引入預設 1000 筆的 LRU 上限（`maxEntries` 可注入），含 keyOrder bookkeeping 與 TTL 過期同步清理，避免長時 session 記憶體無界成長；行為向後相容（既有 3 個 cache test 不需改動）（backlog A4）
+- `RailTools.register` 改 signature 從 `(server:, client:, cache:)` 改為 `(into:, client:, cache:)` — 接 ToolRegistry 而非直接 install MCP handlers。`Server.swift` 統一 install 一次
 
 ### Fixed
 
 - `TDXError.rateLimited` 錯誤訊息誤導：原本說「retry in 60s」但實際只 retry 一次（1s sleep）。改為描述真實行為與 TDX per-minute window（backlog A1）
 - `rail_status_station` 的 `window_min` 在 schema 接受但 TDX endpoint 自帶預設視窗、client 並未過濾 — 在 `CLAUDE.md` 工具清單下加 forward-compatibility 註記（backlog A2）
 
-### Planned (v0.2)
+### Testing
 
-- Bus tools (5): search_routes / search_stops / find_routes / status_arrivals / status_positions
-- Bike tools (3): search_stations / stations_nearby / status_station (YouBike 1.0 + 2.0)
-- See `docs/v0.2-backlog.md` for details
+- Total test count rose from 18 → 52 (+34): ToolRegistry (3), Bus (7), Bike (7), Air (4), Maritime (2), Traffic (3), Parking (4), Cache LRU (4)
+- All 50 unit tests pass; 2 integration tests still XCTSkip without TDX credentials
 
 ## [0.1.0] — 2026-05-20
 

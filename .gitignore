@@ -6,6 +6,9 @@ Package.resolved
 DerivedData/
 *.log
 mcpb/server/CheTransportMCP
+mcpb/server/CheTransportMCP.sha256
 mcpb/*.mcpb
+mcpb/*.mcpb.sha256
+mcpb/notarize-*.zip
 .spectra/
 openspec/.vector-search.db*

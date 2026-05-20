@@ -35,7 +35,7 @@ This file is read by LLM agents (Claude Code, Codex, etc.) that use this MCP ser
 
 Provides 23 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 7 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Maritime, Traffic, Parking.
 
-This Plan 1 build covers **Rail only** (5 tools). Other modes ship in Plans 2-4.
+Current build covers **all 23 tools across 7 modes**. Per-module tool catalogue below.
 
 ## Interaction discipline — NSQL
 
@@ -83,14 +83,49 @@ make setup-tdx   # one-time, interactive
 
 This script prompts for TDX `client_id` / `client_secret`（at <https://tdx.transportdata.tw/register>）and stores them in macOS keychain under service `che-transport-tdx`.
 
-## Tools (Plan 1 — Rail)
+## Tools (23 total across 7 modes)
 
+### Rail (5)
 - `rail_list_systems()` — 列出 8 個支援 system
-- `rail_search_stations(query, system?)` — 模糊搜尋站點 → station_id
-- `rail_find_trains(from, to, date, system)` — O/D 找班次
+- `rail_search_stations(query, system?)` — 模糊搜尋站點 → station_id（未指定 system 會並行 fan-out）
+- `rail_find_trains(from, to, date, system)` — O/D 找班次（僅 TRA / THSR）
 - `rail_status_train(train_no, system)` — 特定列車即時誤點
 - `rail_status_station(station_id, system)` — 站到站板（即時）
   - Note: `window_min` 參數在 schema 中接受（forward-compatibility），但目前 **未生效** — TDX `StationLiveBoard` endpoint 自帶預設視窗。Client-side 視窗過濾預計 v0.3 加入。
+
+### Bus (5) — city 必填
+- `bus_search_routes(query, city)` — 路線模糊搜尋
+- `bus_search_stops(query, city)` — 站牌模糊搜尋
+- `bus_find_routes(from_stop, to_stop, city)` — O/D 候選路線（從 `StopOfRoute` 交集）
+- `bus_status_arrivals(stop_id, city)` — 站牌即時到站預估
+- `bus_status_positions(route_name, city)` — 路線即時車輛位置
+
+**BusCity 22 個代碼**：`Taipei`, `NewTaipei`, `Taoyuan`, `Taichung`, `Tainan`, `Kaohsiung`, `Keelung`, `Hsinchu`, `HsinchuCounty`, `MiaoliCounty`, `ChanghuaCounty`, `NantouCounty`, `YunlinCounty`, `ChiayiCounty`, `Chiayi`, `PingtungCounty`, `YilanCounty`, `HualienCounty`, `TaitungCounty`, `KinmenCounty`, `PenghuCounty`, `LienchiangCounty`
+
+### Bike (3) — YouBike 1.0 + 2.0
+- `bike_search_stations(query, city, service_type?)` — 站名搜尋；`service_type` 為 `YouBike1.0` 或 `YouBike2.0`
+- `bike_stations_nearby(lat, lon, city, radius_m?)` — 距離排序 + 即時可借／可還車（radius_m 預設 500，clamp 至 50-3000）
+- `bike_status_station(station_id, city)` — 單站即時可借／可還
+
+### Air (3) — IATA code
+- `air_list_airports()` — 台灣機場總覽
+- `air_find_flights(airport, direction, flight_number?)` — 排程查詢；direction 為 `Arrival` 或 `Departure`
+- `air_status_flights(airport, direction)` — 即時 FIDS 動態板
+
+### Maritime (2) — operator-scoped
+- `maritime_list_routes(operator_id?)` — 渡輪航線總覽
+- `maritime_status_schedule(route_id)` — 單一航線時刻（raw TDX JSON pass-through，因業者 schema 差異大）
+
+### Traffic (3)
+- `traffic_freeway_live(road_id?)` — 國道路段即時車速／壅塞等級
+- `traffic_incidents(keyword?)` — 交通新聞／施工封閉（5 min cache）
+- `traffic_cctv(road_id?)` — CCTV 即時影像串流 URL
+
+### Parking (2)
+- `parking_list_lots(city, keyword?)` — 路外停車場名單
+- `parking_status(city, lot_id?)` — 即時剩餘車位
+
+**ParkingCity** 與 BusCity 共用 22 個代碼，但 TDX 停車場資料 coverage 主要集中在六都與主要縣市；偏遠縣市可能回空陣列（empty ≠ error）。
 
 See `docs/superpowers/specs/2026-05-20-che-transport-mcp-design.md` for full design.
 

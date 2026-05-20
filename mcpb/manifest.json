@@ -1,0 +1,54 @@
+{
+  "manifest_version": "0.3",
+  "name": "che-transport-mcp",
+  "display_name": "Taiwan Transport (TDX)",
+  "version": "0.2.0",
+  "description": "Real-time Taiwan transport queries via TDX — rail, bus, bike, air, maritime, traffic, parking",
+  "long_description": "23 MCP tools covering Taiwan's public-transport data across 7 modes: Rail (TRA / THSR / 6 metros), Bus (22 cities), Bike (YouBike 1.0 + 2.0), Air (FIDS), Maritime (ferries), Traffic (freeway live + incidents + CCTV), and Parking (off-street). Backed by the TDX 運輸資料流通服務 API (free tier, 50 req/min). Read-only — no execution risk. Requires a free TDX account; run `make setup-tdx` after install.",
+  "author": {
+    "name": "Che Cheng",
+    "url": "https://github.com/kiki830621"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kiki830621/che-transport-mcp.git"
+  },
+  "homepage": "https://github.com/kiki830621/che-transport-mcp",
+  "support": "https://github.com/kiki830621/che-transport-mcp/issues",
+  "keywords": ["taiwan", "transport", "tdx", "rail", "bus", "youbike", "flight", "parking", "traffic"],
+  "license": "MIT",
+  "server": {
+    "type": "binary",
+    "entry_point": "server/CheTransportMCP",
+    "mcp_config": {
+      "command": "${__dirname}/server/CheTransportMCP",
+      "args": [],
+      "env": {}
+    }
+  },
+  "tools": [
+    { "name": "rail_list_systems", "description": "List 8 supported rail systems (TRA / THSR / 4 metros / 2 LRTs)" },
+    { "name": "rail_search_stations", "description": "Fuzzy station name search across rail systems (parallel fan-out)" },
+    { "name": "rail_find_trains", "description": "Find trains by O/D + date (TRA / THSR)" },
+    { "name": "rail_status_train", "description": "Live train delay/position" },
+    { "name": "rail_status_station", "description": "Live station board (arrivals)" },
+    { "name": "bus_search_routes", "description": "Fuzzy bus route search within a city" },
+    { "name": "bus_search_stops", "description": "Fuzzy bus stop search within a city" },
+    { "name": "bus_find_routes", "description": "O/D candidate routes via stop-of-route intersection" },
+    { "name": "bus_status_arrivals", "description": "ETA at a bus stop" },
+    { "name": "bus_status_positions", "description": "Live bus positions on a route" },
+    { "name": "bike_search_stations", "description": "YouBike station name search; optional service-type filter" },
+    { "name": "bike_stations_nearby", "description": "Haversine nearby YouBike stations with live availability" },
+    { "name": "bike_status_station", "description": "Single-station live rent/return count" },
+    { "name": "air_list_airports", "description": "Taiwan airport master (IATA codes)" },
+    { "name": "air_find_flights", "description": "Schedule lookup by airport + Arrival/Departure" },
+    { "name": "air_status_flights", "description": "Live FIDS board" },
+    { "name": "maritime_list_routes", "description": "Ferry route master, optional operator filter" },
+    { "name": "maritime_status_schedule", "description": "Per-route ferry schedule (raw TDX JSON)" },
+    { "name": "traffic_freeway_live", "description": "Freeway section live speed / congestion" },
+    { "name": "traffic_incidents", "description": "Traffic news / incidents with keyword filter" },
+    { "name": "traffic_cctv", "description": "CCTV stream URLs along highways" },
+    { "name": "parking_list_lots", "description": "Off-street car park master per city" },
+    { "name": "parking_status", "description": "Live available-spaces lookup" }
+  ]
+}
