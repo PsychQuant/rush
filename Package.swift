@@ -30,7 +30,7 @@ let package = Package(
             name: "CheTransportMCPTests",
             dependencies: ["CheTransportMCP"],
             path: "Tests/CheTransportMCPTests",
-            resources: [.copy("Fixtures")]
+            resources: [.process("Fixtures")]
         )
     ]
 )
