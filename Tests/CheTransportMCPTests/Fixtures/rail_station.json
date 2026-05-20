@@ -1,0 +1,12 @@
+[
+  {
+    "StationID": "1000",
+    "StationName": { "Zh_tw": "臺北", "En": "Taipei" },
+    "StationPosition": { "PositionLat": 25.0478, "PositionLon": 121.5170 }
+  },
+  {
+    "StationID": "1020",
+    "StationName": { "Zh_tw": "板橋", "En": "Banqiao" },
+    "StationPosition": { "PositionLat": 25.0144, "PositionLon": 121.4633 }
+  }
+]

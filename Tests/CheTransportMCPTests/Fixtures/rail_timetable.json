@@ -1,0 +1,21 @@
+[
+  {
+    "TrainInfo": {
+      "TrainNo": "152",
+      "TrainTypeName": { "Zh_tw": "自強號", "En": "Tze-Chiang" }
+    },
+    "StopTimes": [
+      {
+        "StationID": "1000",
+        "StationName": { "Zh_tw": "臺北", "En": "Taipei" },
+        "DepartureTime": "07:12"
+      },
+      {
+        "StationID": "1020",
+        "StationName": { "Zh_tw": "板橋", "En": "Banqiao" },
+        "ArrivalTime": "07:23",
+        "DepartureTime": "07:24"
+      }
+    ]
+  }
+]
