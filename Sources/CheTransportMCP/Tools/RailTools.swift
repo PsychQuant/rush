@@ -26,6 +26,35 @@ enum RailTools {
                 annotations: .init(readOnlyHint: true, openWorldHint: false)
             ),
             Tool(
+                name: "rail_find_trains",
+                description: "依起站、迄站、日期查詢班次。回傳該日從 from 到 to 的所有班次（含車種與時刻）。僅支援 TRA 與 THSR。",
+                inputSchema: .object([
+                    "type": .string("object"),
+                    "properties": .object([
+                        "from": .object([
+                            "type": .string("string"),
+                            "description": .string("起站 ID（用 rail_search_stations 查詢）")
+                        ]),
+                        "to": .object([
+                            "type": .string("string"),
+                            "description": .string("迄站 ID（用 rail_search_stations 查詢）")
+                        ]),
+                        "date": .object([
+                            "type": .string("string"),
+                            "description": .string("查詢日期，格式 YYYY-MM-DD（Asia/Taipei 時區）")
+                        ]),
+                        "system": .object([
+                            "type": .string("string"),
+                            "description": .string("鐵路系統代碼，僅支援 TRA 或 THSR"),
+                            "enum": .array([.string("TRA"), .string("THSR")])
+                        ])
+                    ]),
+                    "required": .array([.string("from"), .string("to"), .string("date"), .string("system")]),
+                    "additionalProperties": .bool(false)
+                ]),
+                annotations: .init(readOnlyHint: true, openWorldHint: true)
+            ),
+            Tool(
                 name: "rail_search_stations",
                 description: "依名稱（中或英）模糊搜尋鐵路站點，回傳所有匹配站點與其所屬 system。「中山」會回傳多個 system 的同名站。",
                 inputSchema: .object([
@@ -74,6 +103,8 @@ enum RailTools {
             switch name {
             case "rail_list_systems":
                 return try await executeListSystems()
+            case "rail_find_trains":
+                return try await executeFindTrains(arguments: arguments, client: client, cache: cache)
             case "rail_search_stations":
                 return try await executeSearchStations(arguments: arguments, client: client, cache: cache)
             default:
@@ -94,6 +125,35 @@ enum RailTools {
         let data = try JSONSerialization.data(withJSONObject: ["systems": systems])
         let json = String(data: data, encoding: .utf8) ?? "{}"
         return CallTool.Result(content: [.text(text: json, annotations: nil, _meta: nil)])
+    }
+
+    private static func executeFindTrains(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
+        guard let from = arguments["from"]?.stringValue else {
+            throw TDXError.decoding("Missing required parameter: from")
+        }
+        guard let to = arguments["to"]?.stringValue else {
+            throw TDXError.decoding("Missing required parameter: to")
+        }
+        let date = try validateDate(arguments["date"]?.stringValue ?? "")
+        guard let sysCode = arguments["system"]?.stringValue else {
+            throw TDXError.decoding("Missing required parameter: system")
+        }
+        guard let sys = RailSystem(rawValue: sysCode) else {
+            throw TDXError.decoding("Invalid system '\(sysCode)'. Use rail_list_systems to see valid codes.")
+        }
+        guard sys == .TRA || sys == .THSR else {
+            throw TDXError.decoding("system must be TRA or THSR for rail_find_trains (metros use station-based queries)")
+        }
+
+        let path = "\(sys.apiPath)/DailyTrainTimetable/OD/\(from)/to/\(to)/\(date)"
+        let data = try await client.fetch(
+            path: path,
+            cacheTTL: 3600,
+            cache: cache
+        )
+
+        let text = String(data: data, encoding: .utf8) ?? "{}"
+        return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
     }
 
     private static func executeSearchStations(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
@@ -129,6 +189,27 @@ enum RailTools {
         let json = try JSONSerialization.data(withJSONObject: ["matches": allMatches])
         let text = String(data: json, encoding: .utf8) ?? "{}"
         return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
+    }
+}
+
+// MARK: - Date validation
+
+extension RailTools {
+    static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Taipei")
+        return f
+    }()
+
+    static func validateDate(_ s: String) throws -> String {
+        // Strict check: parse then re-format and compare to ensure exact YYYY-MM-DD shape
+        guard let parsed = dateFormatter.date(from: s),
+              dateFormatter.string(from: parsed) == s else {
+            throw TDXError.decoding("Invalid date '\(s)'. Use ISO format YYYY-MM-DD.")
+        }
+        return s
     }
 }
 

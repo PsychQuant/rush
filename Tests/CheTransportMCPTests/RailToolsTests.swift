@@ -29,4 +29,13 @@ final class RailToolsTests: XCTestCase {
         let matches = RailTools.fuzzyMatch(query: "中山", in: stations)
         XCTAssertEqual(matches.count, 2, "Both stations contain 中山")
     }
+
+    func testValidateDateAccepts() {
+        XCTAssertNoThrow(try RailTools.validateDate("2026-05-20"))
+    }
+
+    func testValidateDateRejects() {
+        XCTAssertThrowsError(try RailTools.validateDate("2026/5/20"))
+        XCTAssertThrowsError(try RailTools.validateDate("not-a-date"))
+    }
 }
