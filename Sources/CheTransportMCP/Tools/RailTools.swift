@@ -128,23 +128,17 @@ enum RailTools {
         ]
     }
 
-    // MARK: - Server registration
+    // MARK: - Registry registration
 
-    static func register(server: Server, client: TDXClient, cache: Cache) async {
-        let tools = defineTools()
-
-        await server.withMethodHandler(ListTools.self) { _ in
-            ListTools.Result(tools: tools)
-        }
-
-        await server.withMethodHandler(CallTool.self) { params in
-            await handleCall(name: params.name, arguments: params.arguments ?? [:], client: client, cache: cache)
+    static func register(into registry: ToolRegistry, client: TDXClient, cache: Cache) async {
+        await registry.register(tools: defineTools()) { name, args in
+            await handleCall(name: name, arguments: args, client: client, cache: cache)
         }
     }
 
     // MARK: - Dispatch
 
-    private static func handleCall(name: String, arguments: [String: Value], client: TDXClient, cache: Cache) async -> CallTool.Result {
+    static func handleCall(name: String, arguments: [String: Value], client: TDXClient, cache: Cache) async -> CallTool.Result {
         do {
             switch name {
             case "rail_list_systems":

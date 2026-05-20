@@ -12,9 +12,24 @@ enum TransportServer {
 
         let cache = Cache()
         let client = TDXClient()
+        let registry = ToolRegistry()
 
-        // Rail tools: list_systems / search_stations / find_trains / status_train / status_station
-        await RailTools.register(server: server, client: client, cache: cache)
+        // Each transport mode module appends its tools + dispatcher into the
+        // shared registry. The single ListTools / CallTool handlers below
+        // delegate to the registry so adding a new mode doesn't require
+        // changing wiring here.
+        await RailTools.register(into: registry, client: client, cache: cache)
+        await BusTools.register(into: registry, client: client, cache: cache)
+        await BikeTools.register(into: registry, client: client, cache: cache)
+        // Air / Maritime / Traffic / Parking modules append here
+        // as they land in Plan 3 + Plan 4.
+
+        await server.withMethodHandler(ListTools.self) { _ in
+            ListTools.Result(tools: await registry.allTools())
+        }
+        await server.withMethodHandler(CallTool.self) { params in
+            await registry.handleCall(name: params.name, arguments: params.arguments ?? [:])
+        }
 
         let transport = StdioTransport()
         do {
