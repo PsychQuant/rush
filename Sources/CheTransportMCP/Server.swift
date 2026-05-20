@@ -21,8 +21,10 @@ enum TransportServer {
         await RailTools.register(into: registry, client: client, cache: cache)
         await BusTools.register(into: registry, client: client, cache: cache)
         await BikeTools.register(into: registry, client: client, cache: cache)
-        // Air / Maritime / Traffic / Parking modules append here
-        // as they land in Plan 3 + Plan 4.
+        await AirTools.register(into: registry, client: client, cache: cache)
+        await MaritimeTools.register(into: registry, client: client, cache: cache)
+        await TrafficTools.register(into: registry, client: client, cache: cache)
+        await ParkingTools.register(into: registry, client: client, cache: cache)
 
         await server.withMethodHandler(ListTools.self) { _ in
             ListTools.Result(tools: await registry.allTools())
