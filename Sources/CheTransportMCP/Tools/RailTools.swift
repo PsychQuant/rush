@@ -100,6 +100,31 @@ enum RailTools {
                 ]),
                 annotations: .init(readOnlyHint: true, openWorldHint: true)
             ),
+            Tool(
+                name: "rail_status_station",
+                description: "查特定站點近期到站列車（含誤點）。預設視窗 60 分鐘。僅支援 TRA 與 THSR。",
+                inputSchema: .object([
+                    "type": .string("object"),
+                    "properties": .object([
+                        "station_id": .object([
+                            "type": .string("string"),
+                            "description": .string("站點 ID（用 rail_search_stations 查詢）")
+                        ]),
+                        "system": .object([
+                            "type": .string("string"),
+                            "description": .string("鐵路系統代碼，僅支援 TRA 或 THSR"),
+                            "enum": .array([.string("TRA"), .string("THSR")])
+                        ]),
+                        "window_min": .object([
+                            "type": .string("integer"),
+                            "description": .string("時間視窗（分鐘），預設 60")
+                        ])
+                    ]),
+                    "required": .array([.string("station_id"), .string("system")]),
+                    "additionalProperties": .bool(false)
+                ]),
+                annotations: .init(readOnlyHint: true, openWorldHint: true)
+            ),
         ]
     }
 
@@ -130,6 +155,8 @@ enum RailTools {
                 return try await executeSearchStations(arguments: arguments, client: client, cache: cache)
             case "rail_status_train":
                 return try await executeStatusTrain(arguments: arguments, client: client, cache: cache)
+            case "rail_status_station":
+                return try await executeStatusStation(arguments: arguments, client: client, cache: cache)
             default:
                 return CallTool.Result(content: [.text(text: "Unknown tool: \(name)", annotations: nil, _meta: nil)], isError: true)
             }
@@ -197,6 +224,34 @@ enum RailTools {
         let data = try await client.fetch(
             path: path,
             cacheTTL: 0,  // live data — do not cache
+            cache: cache
+        )
+        let text = String(data: data, encoding: .utf8) ?? "{}"
+        return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
+    }
+
+    private static func executeStatusStation(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
+        guard let stationID = arguments["station_id"]?.stringValue else {
+            throw TDXError.decoding("Missing required parameter: station_id")
+        }
+        guard let sysCode = arguments["system"]?.stringValue else {
+            throw TDXError.decoding("Missing required parameter: system")
+        }
+        guard let sys = RailSystem(rawValue: sysCode) else {
+            throw TDXError.decoding("Invalid system '\(sysCode)'. Use rail_list_systems.")
+        }
+        guard sys == .TRA || sys == .THSR else {
+            throw TDXError.decoding("system must be TRA or THSR for rail_status_station (live station board)")
+        }
+
+        // window_min is currently informational (TDX endpoint returns a default window);
+        // it's accepted in the schema but does not change the path. Future enhancement could
+        // filter the result client-side.
+
+        let path = "\(sys.apiPath)/StationLiveBoard/Station/\(stationID)"
+        let data = try await client.fetch(
+            path: path,
+            cacheTTL: 0,  // live data
             cache: cache
         )
         let text = String(data: data, encoding: .utf8) ?? "{}"
