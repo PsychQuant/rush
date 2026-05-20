@@ -75,8 +75,16 @@ extension TDXClient {
         var req = URLRequest(url: Self.tokenEndpoint)
         req.httpMethod = "POST"
         req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        let body = "grant_type=client_credentials&client_id=\(clientId)&client_secret=\(clientSecret)"
-        req.httpBody = Data(body.utf8)
+        var formComps = URLComponents()
+        formComps.queryItems = [
+            URLQueryItem(name: "grant_type", value: "client_credentials"),
+            URLQueryItem(name: "client_id", value: clientId),
+            URLQueryItem(name: "client_secret", value: clientSecret)
+        ]
+        guard let bodyString = formComps.percentEncodedQuery else {
+            throw TDXError.authFailed("Failed to encode credential form body")
+        }
+        req.httpBody = Data(bodyString.utf8)
 
         let (data, response): (Data, URLResponse)
         do {
@@ -105,13 +113,17 @@ extension TDXClient {
         }
 
         // Build URL
-        var comps = URLComponents(url: Self.apiBase.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
+        guard var comps = URLComponents(url: Self.apiBase.appendingPathComponent(path), resolvingAgainstBaseURL: false) else {
+            throw TDXError.network("Failed to construct URLComponents for path: \(path)")
+        }
         var items = queryItems
         if !items.contains(where: { $0.name == "$format" }) {
             items.append(URLQueryItem(name: "$format", value: "JSON"))
         }
         comps.queryItems = items
-        let url = comps.url!
+        guard let url = comps.url else {
+            throw TDXError.network("Failed to construct request URL for path: \(path)")
+        }
 
         let data = try await performRequest(url: url, attempt: 1)
         await cache.set(key: key, value: data, ttl: cacheTTL)
