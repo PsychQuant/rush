@@ -13,7 +13,7 @@ enum TransportServer {
         let cache = Cache()
         let client = TDXClient()
 
-        // Register Rail tools (Tasks 10-14 will populate)
+        // Rail tools: list_systems / search_stations / find_trains / status_train / status_station
         await RailTools.register(server: server, client: client, cache: cache)
 
         let transport = StdioTransport()
