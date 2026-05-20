@@ -41,7 +41,7 @@ actor TDXClient {
     static let tokenEndpoint = URL(string: "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token")!
     static let apiBase = URL(string: "https://tdx.transportdata.tw/api/basic/")!
 
-    var cachedToken: TDXToken?
+    private var cachedToken: TDXToken?
 
     static func parseTokenResponse(_ data: Data) throws -> TDXToken {
         struct Raw: Decodable {
