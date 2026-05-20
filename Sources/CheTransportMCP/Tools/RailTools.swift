@@ -79,6 +79,27 @@ enum RailTools {
                 ]),
                 annotations: .init(readOnlyHint: true, openWorldHint: true)
             ),
+            Tool(
+                name: "rail_status_train",
+                description: "查特定列車的即時誤點與位置。僅支援 TRA 與 THSR（捷運即時資料使用 station-board）。",
+                inputSchema: .object([
+                    "type": .string("object"),
+                    "properties": .object([
+                        "train_no": .object([
+                            "type": .string("string"),
+                            "description": .string("列車車號")
+                        ]),
+                        "system": .object([
+                            "type": .string("string"),
+                            "description": .string("鐵路系統代碼，僅支援 TRA 或 THSR"),
+                            "enum": .array([.string("TRA"), .string("THSR")])
+                        ])
+                    ]),
+                    "required": .array([.string("train_no"), .string("system")]),
+                    "additionalProperties": .bool(false)
+                ]),
+                annotations: .init(readOnlyHint: true, openWorldHint: true)
+            ),
         ]
     }
 
@@ -107,6 +128,8 @@ enum RailTools {
                 return try await executeFindTrains(arguments: arguments, client: client, cache: cache)
             case "rail_search_stations":
                 return try await executeSearchStations(arguments: arguments, client: client, cache: cache)
+            case "rail_status_train":
+                return try await executeStatusTrain(arguments: arguments, client: client, cache: cache)
             default:
                 return CallTool.Result(content: [.text(text: "Unknown tool: \(name)", annotations: nil, _meta: nil)], isError: true)
             }
@@ -152,6 +175,30 @@ enum RailTools {
             cache: cache
         )
 
+        let text = String(data: data, encoding: .utf8) ?? "{}"
+        return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
+    }
+
+    private static func executeStatusTrain(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
+        guard let trainNo = arguments["train_no"]?.stringValue else {
+            throw TDXError.decoding("Missing required parameter: train_no")
+        }
+        guard let sysCode = arguments["system"]?.stringValue else {
+            throw TDXError.decoding("Missing required parameter: system")
+        }
+        guard let sys = RailSystem(rawValue: sysCode) else {
+            throw TDXError.decoding("Invalid system '\(sysCode)'. Use rail_list_systems.")
+        }
+        guard sys == .TRA || sys == .THSR else {
+            throw TDXError.decoding("system must be TRA or THSR for rail_status_train (live train board)")
+        }
+
+        let path = "\(sys.apiPath)/TrainLiveBoard/Train/\(trainNo)"
+        let data = try await client.fetch(
+            path: path,
+            cacheTTL: 0,  // live data — do not cache
+            cache: cache
+        )
         let text = String(data: data, encoding: .utf8) ?? "{}"
         return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
     }
