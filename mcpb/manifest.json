@@ -11,10 +11,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/kiki830621/che-transport-mcp.git"
+    "url": "https://github.com/PsychQuant/che-transport-mcp.git"
   },
-  "homepage": "https://github.com/kiki830621/che-transport-mcp",
-  "support": "https://github.com/kiki830621/che-transport-mcp/issues",
+  "homepage": "https://github.com/PsychQuant/che-transport-mcp",
+  "support": "https://github.com/PsychQuant/che-transport-mcp/issues",
   "keywords": ["taiwan", "transport", "tdx", "rail", "bus", "youbike", "flight", "parking", "traffic"],
   "license": "MIT",
   "server": {
