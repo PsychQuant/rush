@@ -100,46 +100,66 @@ Both query and candidate name are normalized before comparison. Don't normalize 
 
 Bus and Parking tools require `city` because 22-way parallel fan-out would exceed TDX 50/min, and ambiguity ("中山路" exists in many cities) wouldn't resolve without it.
 
-## How to cut a release (when ready)
+## How to cut a release
+
+**v0.2.0 已發 (2026-05-21)** — see [release](https://github.com/PsychQuant/che-transport-mcp/releases/tag/v0.2.0) and the matching plugin entry at [psychquant-claude-plugins](https://github.com/PsychQuant/psychquant-claude-plugins/tree/main/plugins/che-transport-mcp). The flow below is the template for v0.3.0+.
+
+### Step 1: Source-repo release
 
 ```bash
-# Pre-flight checks
-make verify-release-ready   # warns about drift; expected after v0.2 work
-swift test                  # confirms 50 unit + 2 integration baseline
+# Pre-flight
+make verify-release-ready   # warns about drift between Version.swift and latest tag
+swift test                  # confirm all unit + integration baseline still green
 
-# CHANGELOG: move Unreleased section under [0.2.0] dated today, leave Unreleased empty
+# CHANGELOG: move Unreleased → [X.Y.Z] dated today, leave Unreleased empty
+# Bump Sources/CheTransportMCP/Version.swift + mcpb/manifest.json to X.Y.Z
+
+git add CHANGELOG.md Sources/CheTransportMCP/Version.swift mcpb/manifest.json
+git commit -m "release: prepare vX.Y.Z cut"
+git push origin main
 
 # Tag
-git tag v0.2.0
-git push origin main --tags
+git tag vX.Y.Z && git push origin vX.Y.Z
 
-# Build signed + notarized + packed .mcpb
+# Build signed + notarized
 export DEVELOPER_ID="F2523DCF6D02BE99B67C7D27F633119292DA4934"
 export NOTARY_PROFILE="che-mcps-notary"
-make release-signed
+make release-signed  # ~2-10 min; xcrun notarytool submit --wait
 
-# Outputs:
-#   mcpb/server/CheTransportMCP                          # universal binary
-#   mcpb/server/CheTransportMCP.sha256
-#   mcpb/che-transport-mcp-0.2.0.mcpb                    # Claude Desktop bundle
-#   mcpb/che-transport-mcp-0.2.0.mcpb.sha256
-
-# Upload .mcpb + .sha256 to a GitHub release of v0.2.0
-gh release create v0.2.0 \
-  mcpb/che-transport-mcp-0.2.0.mcpb \
-  mcpb/che-transport-mcp-0.2.0.mcpb.sha256 \
+# Publish — CRITICAL: include the raw CheTransportMCP binary, not just the .mcpb,
+# because the plugin wrapper greps browser_download_url for /CheTransportMCP" .
+# Forget this and end users see "no download URL found at PsychQuant/che-transport-mcp".
+gh release create vX.Y.Z \
+  mcpb/server/CheTransportMCP \
   mcpb/server/CheTransportMCP.sha256 \
-  --title "v0.2.0 — 23 tools across 7 transport modes" \
-  --notes-file <(awk '/## \[0.2.0\]/,/## \[/' CHANGELOG.md | head -n -1)
-
-# (Optional) Register in psychquant-claude-plugins marketplace via /plugin-tools:plugin-update
+  mcpb/che-transport-mcp-X.Y.Z.mcpb \
+  mcpb/che-transport-mcp-X.Y.Z.mcpb.sha256 \
+  --repo PsychQuant/che-transport-mcp \
+  --title "vX.Y.Z — …" \
+  --notes-file <(awk '/## \[X.Y.Z\]/,/## \[/' CHANGELOG.md | head -n -1)
 ```
+
+### Step 2: Plugin-marketplace bump
+
+Bump `plugins/che-transport-mcp/.claude-plugin/plugin.json` + matching entry in `.claude-plugin/marketplace.json` to `X.Y.Z`. Fast path:
+
+```bash
+/plugin-tools:plugin-update che-transport-mcp
+```
+
+This bumps both files, commits, pushes, runs `claude plugin marketplace update`, and runs `claude plugin update`.
+
+### Step 3: End-user side (automatic)
+
+Wrapper's version-aware auto-download notices the sidecar mismatch on next MCP spawn and pulls the new binary atomically. No user action needed beyond restarting Claude Code (`Cmd+Q` + reopen for MCP servers).
+
+See the plugin's [CLAUDE.md → Full upgrade chain](https://github.com/PsychQuant/psychquant-claude-plugins/blob/main/plugins/che-transport-mcp/CLAUDE.md#full-upgrade-chain-binary--plugin) for the canonical reference.
 
 ## Things you might want to verify before starting
 
 1. `swift test` — 50 unit + 1 integration local PASS, 2 integration SKIP without creds
 2. `swift build` — no warnings
-3. `git tag --list` — should show `v0.1.0`, possibly `v0.2.0` (after maintainer cuts)
+3. `git tag --list` — should show `v0.1.0` + `v0.2.0` (released 2026-05-21)
 4. `git status` — clean
 5. `make verify-release-ready` — reports drift state honestly
 6. MCP swift-sdk version (`Package.swift` declares `.upToNextMinor(from: "0.12.0")`); 0.13.x+ may have API changes
