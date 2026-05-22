@@ -78,10 +78,12 @@ Before calling any tool, **follow NSQL confirmation protocol**:
 ## Setup
 
 ```bash
-make setup-tdx   # one-time, interactive
+make setup-tdx                 # one-time, interactive (wraps CheTransportMCP --setup)
+# or directly, once the binary is built/installed:
+CheTransportMCP --setup
 ```
 
-This script prompts for TDX `client_id` / `client_secret`（at <https://tdx.transportdata.tw/register>）and stores them in macOS keychain under service `che-transport-tdx`.
+`--setup` prompts for TDX `client_id` / `client_secret`（register at <https://tdx.transportdata.tw/register>），writes them to the macOS keychain under service `che-transport-tdx`, and verifies with a live OAuth round-trip. The secret prompt uses `getpass` so it never echoes.
 
 ## Tools (23 total across 7 modes)
 

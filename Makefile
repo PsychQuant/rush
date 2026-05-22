@@ -9,8 +9,8 @@ build:
 test:
 	swift test
 
-setup-tdx:
-	@bash scripts/setup-tdx.sh
+setup-tdx: build
+	@.build/debug/CheTransportMCP --setup
 
 check-auth: build
 	@.build/debug/CheTransportMCP --check-auth

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-05-22
+
+### Added
+
+- `CheTransportMCP --setup` — interactive TDX credential setup built into the binary. Prompts for `client_id` (visible) and `client_secret` (hidden, via `getpass`), writes both to keychain via `Auth.save`, then verifies with a real OAuth round-trip. Replaces the repo-coupled `scripts/setup-tdx.sh` as the canonical setup path: single signed+notarized artifact, shared keychain code with `Auth.read` (no read/write drift), unit-testable validation. `Setup.swift` + 6 `SetupTests`.
+
+### Changed
+
+- `--help` text + `AuthError.itemNotFound` message now point at `CheTransportMCP --setup` instead of `make setup-tdx` (the latter only works inside a cloned source repo; the binary is what plugin users actually have)
+
 ## [0.2.0] — 2026-05-21
 
 23 tools across all 7 transport modes (Rail / Bus / Bike / Air / Maritime / Traffic / Parking). Architecture refactored around a `ToolRegistry` actor so mode modules can coexist. Released to `PsychQuant/che-transport-mcp`.
@@ -127,6 +137,7 @@ First public-ready cut. Infrastructure + 5 Rail tools shipped.
 - `rail_search_stations` with no `system` filter fires 8 sequential HTTP requests on cold cache (24h cache means steady-state cost is negligible, but cold start can take seconds)
 - `Cache` is unbounded — fine for rail (~500 KB), needs size cap before bus stops land in v0.2
 
-[Unreleased]: https://github.com/PsychQuant/che-transport-mcp/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/PsychQuant/che-transport-mcp/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/PsychQuant/che-transport-mcp/releases/tag/v0.2.1
 [0.2.0]: https://github.com/PsychQuant/che-transport-mcp/releases/tag/v0.2.0
 [0.1.0]: https://github.com/kiki830621/che-mcps/releases/tag/v0.1.0

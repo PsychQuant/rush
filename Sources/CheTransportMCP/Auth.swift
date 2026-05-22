@@ -8,7 +8,7 @@ enum AuthError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .itemNotFound:
-            return "TDX credentials missing. Run: make setup-tdx"
+            return "TDX credentials missing. Run: CheTransportMCP --setup"
         case .keychainError(let status):
             return "Keychain error (OSStatus \(status))"
         }

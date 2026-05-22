@@ -12,6 +12,11 @@ if CommandLine.arguments.contains("--help") || CommandLine.arguments.contains("-
     exit(0)
 }
 
+if CommandLine.arguments.contains("--setup") {
+    let code = await Setup.run()
+    exit(code)
+}
+
 if CommandLine.arguments.contains("--check-auth") {
     do {
         _ = try Auth.read(account: "client_id")
