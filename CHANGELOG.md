@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-05-23
+
+### Changed
+
+- `--setup` now delegates to [`che-keychain`](https://github.com/PsychQuant/che-keychain) if installed in `~/bin/`, `/usr/local/bin/`, `/opt/homebrew/bin/`, or `$PATH`. Soft dependency — when `che-keychain` is available, the user sees a **native macOS dialog** (NSAlert + NSStackView with NSTextField + NSSecureTextField) for both fields in one popup, no Terminal getpass prompt. The dialog runs inside the signed `che-keychain` binary so the typed `client_secret` never enters this process either. When `che-keychain` is not found, the existing in-process getpass flow runs unchanged — no behavior regression.
+- Setup banner under the getpass fallback now points users at the `che-keychain` install URL for the nicer UX.
+- Updated TDX portal navigation hint: `會員中心 → 資料服務 → API 金鑰 → 編輯` (the previous wording skipped the `資料服務` submenu and the `編輯` reveal step, which is exactly where new users get stuck).
+
 ## [0.2.1] — 2026-05-22
 
 ### Added
@@ -137,7 +145,8 @@ First public-ready cut. Infrastructure + 5 Rail tools shipped.
 - `rail_search_stations` with no `system` filter fires 8 sequential HTTP requests on cold cache (24h cache means steady-state cost is negligible, but cold start can take seconds)
 - `Cache` is unbounded — fine for rail (~500 KB), needs size cap before bus stops land in v0.2
 
-[Unreleased]: https://github.com/PsychQuant/che-transport-mcp/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/PsychQuant/che-transport-mcp/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/PsychQuant/che-transport-mcp/releases/tag/v0.2.2
 [0.2.1]: https://github.com/PsychQuant/che-transport-mcp/releases/tag/v0.2.1
 [0.2.0]: https://github.com/PsychQuant/che-transport-mcp/releases/tag/v0.2.0
 [0.1.0]: https://github.com/kiki830621/che-mcps/releases/tag/v0.1.0
