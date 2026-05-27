@@ -1,0 +1,50 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Lets a follow-up push cancel an in-flight run from the same branch — saves
+# minutes when the maintainer pushes a fix on top of an immediately-broken
+# commit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          swift --version
+          xcodebuild -version
+
+      # SwiftPM caches resolved dependencies and intermediate build products
+      # under .build/. Keyed on Package.resolved so the cache invalidates
+      # whenever a dependency version moves.
+      - name: Cache .build
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test
+        env:
+          # No TDX credentials are seeded in CI. The 2 RailIntegration
+          # tests `XCTSkip` cleanly without them; the other 70+ run fully.
+          # Setting this disables Auth.read's keychain prompt if it ever
+          # leaks through (it shouldn't, but defense in depth).
+          NSUnbufferedIO: "YES"
