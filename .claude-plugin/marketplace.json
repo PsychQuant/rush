@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "che-transport-mcp",
+  "description": "Taiwan TDX transport MCP — 23 tools across Rail / Bus / Bike / Air / Maritime / Traffic / Parking. Distributed as a self-contained marketplace: this repo holds the binary source, the plugin shell, and the marketplace catalog.",
+  "owner": {
+    "name": "Che Cheng"
+  },
+  "plugins": [
+    {
+      "name": "che-transport-mcp",
+      "source": "./plugin",
+      "description": "Wraps PsychQuant/che-transport-mcp binary (currently binaryVersion 0.2.2) with version-aware auto-download (release-pinned + sha256 sidecar), 3-tier cache TTL (24h static / 1h timetable / 0s live), parallel cross-system station search, NSQL confirmation discipline for ambiguous queries. Built-in `CheTransportMCP --setup` subcommand (getpass-hidden secret prompt, shared keychain code with --check-auth); when che-keychain is installed, --setup auto-delegates to its native NSAlert dialog.",
+      "category": "productivity"
+    }
+  ]
+}
