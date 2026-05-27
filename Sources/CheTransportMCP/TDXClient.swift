@@ -43,6 +43,32 @@ actor TDXClient {
 
     private var cachedToken: TDXToken?
 
+    /// Injected dependencies (all have defaults — production callers pass nothing).
+    /// Tests override `session` with a `URLSession` carrying `MockURLProtocol`,
+    /// `credentialProvider` to skip keychain access, and `retryDelayNanoseconds`
+    /// to keep the 429-retry test from blocking for a real second.
+    private let session: URLSession
+    private let credentialProvider: () throws -> (clientId: String, clientSecret: String)
+    private let retryDelayNanoseconds: UInt64
+
+    init(
+        session: URLSession = .shared,
+        credentialProvider: @escaping () throws -> (clientId: String, clientSecret: String) = TDXClient.defaultCredentialProvider,
+        retryDelayNanoseconds: UInt64 = 1_000_000_000
+    ) {
+        self.session = session
+        self.credentialProvider = credentialProvider
+        self.retryDelayNanoseconds = retryDelayNanoseconds
+    }
+
+    /// Production default — reads `client_id` / `client_secret` from the
+    /// macOS keychain via `Auth`. Tests pass an inline closure instead.
+    static func defaultCredentialProvider() throws -> (clientId: String, clientSecret: String) {
+        let id = try Auth.read(account: "client_id")
+        let secret = try Auth.read(account: "client_secret")
+        return (clientId: id, clientSecret: secret)
+    }
+
     static func parseTokenResponse(_ data: Data) throws -> TDXToken {
         struct Raw: Decodable {
             let access_token: String
@@ -69,8 +95,7 @@ extension TDXClient {
     func ensureToken() async throws -> TDXToken {
         if let token = cachedToken, !token.isExpired { return token }
 
-        let clientId = try Auth.read(account: "client_id")
-        let clientSecret = try Auth.read(account: "client_secret")
+        let (clientId, clientSecret) = try credentialProvider()
 
         var req = URLRequest(url: Self.tokenEndpoint)
         req.httpMethod = "POST"
@@ -88,7 +113,7 @@ extension TDXClient {
 
         let (data, response): (Data, URLResponse)
         do {
-            (data, response) = try await URLSession.shared.data(for: req)
+            (data, response) = try await session.data(for: req)
         } catch {
             throw TDXError.network(error.localizedDescription)
         }
@@ -138,7 +163,7 @@ extension TDXClient {
 
         let (data, response): (Data, URLResponse)
         do {
-            (data, response) = try await URLSession.shared.data(for: req)
+            (data, response) = try await session.data(for: req)
         } catch {
             throw TDXError.network(error.localizedDescription)
         }
@@ -149,7 +174,7 @@ extension TDXClient {
 
         if http.statusCode == 429 {
             if attempt < 2 {
-                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s
+                try? await Task.sleep(nanoseconds: retryDelayNanoseconds)
                 return try await performRequest(url: url, attempt: attempt + 1)
             }
             throw TDXError.rateLimited
