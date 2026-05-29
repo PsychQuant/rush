@@ -43,16 +43,36 @@ enum Setup {
         return 1
     }
 
+    /// Directories searched for `che-keychain`, in priority order, before
+    /// falling back to a PATH lookup.
+    static func defaultSearchDirectories() -> [URL] {
+        [
+            FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("bin"),
+            URL(fileURLWithPath: "/usr/local/bin"),
+            URL(fileURLWithPath: "/opt/homebrew/bin")
+        ]
+    }
+
+    /// Pure search: returns the first `directories` entry that contains an
+    /// executable named `name`, or nil. No PATH fallback, no Process — kept
+    /// side-effect-free so it is unit-testable with a temp directory.
+    static func findExecutable(named name: String,
+                               in directories: [URL],
+                               fileManager: FileManager = .default) -> URL? {
+        for dir in directories {
+            let candidate = dir.appendingPathComponent(name)
+            if fileManager.isExecutableFile(atPath: candidate.path) {
+                return candidate
+            }
+        }
+        return nil
+    }
+
     /// Returns the path to a working `che-keychain` binary if one is installed in
     /// a known location, or nil to fall back to the in-binary getpass flow.
     static func findCheKeychain() -> URL? {
-        let candidates = [
-            FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("bin/che-keychain"),
-            URL(fileURLWithPath: "/usr/local/bin/che-keychain"),
-            URL(fileURLWithPath: "/opt/homebrew/bin/che-keychain")
-        ]
-        for url in candidates where FileManager.default.isExecutableFile(atPath: url.path) {
-            return url
+        if let found = findExecutable(named: "che-keychain", in: defaultSearchDirectories()) {
+            return found
         }
         // Fall back to PATH lookup via `env`. We avoid hard-coding more dirs.
         let p = Process()
