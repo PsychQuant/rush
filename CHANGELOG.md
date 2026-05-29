@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-05-29
+
+### Fixed
+
+- Tool JSON output no longer leaks IEEE-754 float noise. Coordinates like `25.04` previously rendered as `25.039999999999999` because `JSONSerialization` formats every `Double` with up to 17 significant digits — and rounding the value cannot fix this (`25.04` has no exact IEEE-754 representation, so the rounded result is the same bit pattern). New `JSONSanitize.clean` recursively rewrites every `Double` to its shortest round-trippable form via `NSDecimalNumber(Double.description)`, wired into all 8 tool-output serialization sites (6 `jsonResult` helpers + 2 inline `RailTools` sites). Value-preserving (exact numeric round-trip), `Int`/`Bool` untouched, non-finite values and raw TDX passthroughs unaffected. (#1, PR #2)
+
 ## [0.2.2] — 2026-05-23
 
 ### Changed
