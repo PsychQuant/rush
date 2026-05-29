@@ -282,7 +282,7 @@ enum BikeTools {
     }
 
     static func jsonResult(_ obj: [String: Any]) -> CallTool.Result {
-        let data = (try? JSONSerialization.data(withJSONObject: obj)) ?? Data("{}".utf8)
+        let data = (try? JSONSerialization.data(withJSONObject: JSONSanitize.clean(obj))) ?? Data("{}".utf8)
         let text = String(data: data, encoding: .utf8) ?? "{}"
         return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
     }

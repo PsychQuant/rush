@@ -166,7 +166,7 @@ enum RailTools {
 
     private static func executeListSystems() async throws -> CallTool.Result {
         let systems = listSystems()
-        let data = try JSONSerialization.data(withJSONObject: ["systems": systems])
+        let data = try JSONSerialization.data(withJSONObject: JSONSanitize.clean(["systems": systems]))
         let json = String(data: data, encoding: .utf8) ?? "{}"
         return CallTool.Result(content: [.text(text: json, annotations: nil, _meta: nil)])
     }
@@ -300,7 +300,7 @@ enum RailTools {
             }
         }
 
-        let json = try JSONSerialization.data(withJSONObject: ["matches": allMatches])
+        let json = try JSONSerialization.data(withJSONObject: JSONSanitize.clean(["matches": allMatches]))
         let text = String(data: json, encoding: .utf8) ?? "{}"
         return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
     }
