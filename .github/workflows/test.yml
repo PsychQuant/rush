@@ -44,7 +44,26 @@ jobs:
         run: swift test
         env:
           # No TDX credentials are seeded in CI. The 2 RailIntegration
-          # tests `XCTSkip` cleanly without them; the other 70+ run fully.
+          # tests `XCTSkip` cleanly without them; the other 90+ run fully
+          # (MockURLProtocol covers HTTP + executor behavior offline).
           # Setting this disables Auth.read's keychain prompt if it ever
           # leaks through (it shouldn't, but defense in depth).
           NSUnbufferedIO: "YES"
+
+  # Lints the plugin shell scripts and runs the session-start hook behavior
+  # test. Runs on ubuntu (shellcheck pre-installed, fast) — the scripts are
+  # OS-agnostic for linting, and the behavior test only asserts the
+  # binary-presence banner, which is emitted before the macOS-only `security`
+  # call, so it passes regardless of platform.
+  shell:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: shellcheck plugin scripts
+        run: shellcheck plugin/bin/*.sh plugin/hooks/*.sh plugin/tests/*.sh
+
+      - name: session-start hook behavior test
+        run: bash plugin/tests/test-session-start.sh
