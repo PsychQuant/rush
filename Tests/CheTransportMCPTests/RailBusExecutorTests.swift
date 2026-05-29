@@ -223,12 +223,11 @@ final class RailBusExecutorTests: XCTestCase {
         XCTAssertNotEqual(result.isError, true)
         let text = TestSupport.textContent(result)
         XCTAssertTrue(text.contains("\"plate\":\"KKA-1234\""))
-        // NOTE: lat/lon are emitted as raw Doubles, so JSONSerialization
-        // renders 25.04 as "25.039999999999999" (IEEE-754 noise). We assert
-        // the leading digits rather than the literal to stay robust; the
-        // precision noise itself is a known minor output-quality issue
-        // affecting every geo-emitting executor.
-        XCTAssertTrue(text.contains("\"lat\":25.0"), "bus position lat present; got \(text)")
+        // lat/lon must render as clean shortest-round-trippable JSON numbers
+        // (no IEEE-754 17-digit noise). JSONSanitize routes every Double through
+        // NSDecimalNumber(Double.description) before serialization — see #1.
+        XCTAssertTrue(text.contains("\"lat\":25.04"), "bus position lat clean; got \(text)")
+        XCTAssertTrue(text.contains("\"lon\":121.56"), "bus position lon clean; got \(text)")
     }
 
     func testBusRejectsInvalidCity() async {

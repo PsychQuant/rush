@@ -69,6 +69,12 @@ final class ModeExecutorTests: XCTestCase {
             XCTAssertLessThan(nearIdx.lowerBound, farIdx.lowerBound, "nearer station should sort first")
         }
         XCTAssertEqual(MockURLProtocol.stub?.calls.count, 3, "token + station list + availability")
+        // Cross-module clean-coordinate guarantee (#1): station coords + the
+        // echoed search center must carry no IEEE-754 17-digit noise. This is
+        // the geo-heaviest executor, so it guards the centralized JSONSanitize
+        // wiring for every non-bus mode.
+        XCTAssertFalse(text.contains("999999"), "no float noise in bike output; got \(text)")
+        XCTAssertTrue(text.contains("\"lat\":25.04"), "search center echoed clean; got \(text)")
     }
 
     func testBikeStatusStationReportsAvailability() async {
