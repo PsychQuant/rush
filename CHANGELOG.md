@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-30
+
 ### Added
 - `TDXEndpoints` — single source of truth for every TDX API path; production tools resolve paths through it (no inline path literals).
 - Registry-driven live contract tests (`ContractTests`) — one assertion per non-static endpoint (not-404 → 200 → decode), opt-in via `TDX_CONTRACT`, skipped without credentials. New `contract-tests.yml` runs them nightly / on release / on dispatch (never on PRs).
