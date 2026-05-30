@@ -84,11 +84,6 @@ enum TDXEndpoints {
     static func trafficNews() -> String { "v2/Road/Traffic/Live/News/Freeway" }
     static func trafficCCTVHighway() -> String { "v2/Road/Traffic/CCTV/Highway" }
 
-    // MARK: - Maritime
-
-    static func maritimeRoute() -> String { "v2/Maritime/Route" }
-    static func maritimeSchedule() -> String { "v2/Maritime/Schedule" }
-
     // MARK: - Parking (note: served under v1)
 
     static func parkingCarPark(_ city: String) -> String { "v1/Parking/OffStreet/CarPark/City/\(city)" }
@@ -158,7 +153,7 @@ extension TDXEndpoints {
     }
 
     /// Several tools pass the TDX body through raw (rail timetable / live
-    /// boards, maritime schedule) — production decodes no model for them, so the
+    /// boards) — production decodes no model for them, so the
     /// contract only asserts the body is well-formed JSON (object or array). The
     /// path-correctness layers (not-404, 200) still apply; this just avoids
     /// imposing a stricter shape than production ever validates.
@@ -233,12 +228,6 @@ extension TDXEndpoints {
             path: trafficNews(), decode: wrappedArrayDecoder(TrafficIncident.self)))
         cases.append(ContractCase(key: "traffic.cctv", mode: "traffic",
             path: trafficCCTVHighway(), decode: wrappedArrayDecoder(TrafficCCTV.self)))
-
-        // Maritime
-        cases.append(ContractCase(key: "maritime.route", mode: "maritime",
-            path: maritimeRoute(), decode: arrayDecoder(MaritimeRoute.self)))
-        cases.append(ContractCase(key: "maritime.schedule", mode: "maritime",
-            path: maritimeSchedule(), decode: decodeAnyJSON))
 
         // Parking (representative city) — v1 Parking wraps the data array.
         cases.append(ContractCase(key: "parking.carPark", mode: "parking",

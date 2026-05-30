@@ -25,20 +25,11 @@ final class ContractTests: XCTestCase {
     /// deleted (it is never silently dropped).
     ///
     /// Follow-up tracked in PsychQuant/che-transport-mcp#4.
-    static let knownPending: [String: String] = [
-        // Maritime is NOT served from the unified TDX API host
-        // (tdx.transportdata.tw/api/basic/) — every v2/* and v3/Maritime/* path
-        // there 404s. The TDX swagger reveals 航運 (maritime) is still on the
-        // legacy PTX backend at https://ptx.transportdata.tw/Ship_backend/, a
-        // different host (and likely different auth). Supporting it needs a
-        // separate base-URL/client integration, which is out of scope for this
-        // endpoint-registry change. Quarantined until that integration lands;
-        // all other contract endpoints are fixed and expected to pass.
-        "maritime.route":
-            "served on the legacy PTX Ship_backend host, not tdx.../api/basic — needs a separate integration",
-        "maritime.schedule":
-            "served on the legacy PTX Ship_backend host, not tdx.../api/basic — needs a separate integration",
-    ]
+    // No endpoints are quarantined: every registered endpoint is expected to
+    // pass live. (Maritime was removed — TDX no longer serves it on the unified
+    // API and the legacy PTX Ship API is decommissioned.) The mechanism is kept
+    // so a future drift can be quarantined transparently rather than silently skipped.
+    static let knownPending: [String: String] = [:]
 
     /// Spacing between live requests to stay under TDX's per-minute rate limit
     /// (observed to trip on bursts well below the nominal 50/min). Overridable

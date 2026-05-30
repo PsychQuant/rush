@@ -33,9 +33,11 @@ This file is read by LLM agents (Claude Code, Codex, etc.) that use this MCP ser
 
 ## What this MCP does
 
-Provides 23 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 7 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Maritime, Traffic, Parking.
+Provides 21 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
 
-Current build covers **all 23 tools across 7 modes**. Per-module tool catalogue below.
+Current build covers **all 21 tools across 6 modes**. Per-module tool catalogue below.
+
+> **Maritime (航運/渡輪) is not covered.** TDX no longer serves it on the unified API (every `v2`/`v3` `Maritime`/`Ship` path 404s) and the legacy PTX `Ship` API is decommissioned (403 regardless of auth). The contract suite confirmed there is no callable maritime endpoint, so those tools were removed rather than ship broken. See PsychQuant/che-transport-mcp#4.
 
 ## Interaction discipline — NSQL
 
@@ -85,7 +87,7 @@ CheTransportMCP --setup
 
 `--setup` prompts for TDX `client_id` / `client_secret`（register at <https://tdx.transportdata.tw/register>），writes them to the macOS keychain under service `che-transport-tdx`, and verifies with a live OAuth round-trip. The secret prompt uses `getpass` so it never echoes.
 
-## Tools (23 total across 7 modes)
+## Tools (21 total across 6 modes)
 
 ### Rail (5)
 - `rail_list_systems()` — 列出 8 個支援 system
@@ -113,10 +115,6 @@ CheTransportMCP --setup
 - `air_list_airports()` — 台灣機場總覽
 - `air_find_flights(airport, direction, flight_number?)` — 排程查詢；direction 為 `Arrival` 或 `Departure`
 - `air_status_flights(airport, direction)` — 即時 FIDS 動態板
-
-### Maritime (2) — operator-scoped
-- `maritime_list_routes(operator_id?)` — 渡輪航線總覽
-- `maritime_status_schedule(route_id)` — 單一航線時刻（raw TDX JSON pass-through，因業者 schema 差異大）
 
 ### Traffic (3)
 - `traffic_freeway_live(road_id?)` — 國道路段即時車速／壅塞等級

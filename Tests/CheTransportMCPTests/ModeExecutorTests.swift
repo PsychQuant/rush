@@ -2,7 +2,7 @@ import XCTest
 import MCP
 @testable import CheTransportMCP
 
-/// Executor-level tests for Bike / Air / Maritime / Traffic / Parking, driven
+/// Executor-level tests for Bike / Air / Traffic / Parking, driven
 /// through `<Module>Tools.handleCall` against a mocked TDXClient. Same pattern
 /// as RailBusExecutorTests: argument parsing → fetch (mocked) → decode →
 /// output assembly.
@@ -162,47 +162,6 @@ final class ModeExecutorTests: XCTestCase {
         )
         XCTAssertEqual(result.isError, true, "4-letter IATA should be rejected")
         XCTAssertEqual(MockURLProtocol.stub?.calls.count, 0)
-    }
-
-    // MARK: - Maritime
-
-    func testMaritimeListRoutesAssembles() async {
-        let fixture = Data("""
-        [
-          {"RouteID":"MTR001","RouteName":{"Zh_tw":"基隆-馬祖","En":"Keelung-Matsu"},
-           "OperatorID":"TWNC","DepartureStopID":"KE","DestinationStopID":"MT",
-           "DepartureStopName":{"Zh_tw":"基隆"},"DestinationStopName":{"Zh_tw":"馬祖"}}
-        ]
-        """.utf8)
-        TestSupport.queueTokenThen(fixture)
-
-        let result = await MaritimeTools.handleCall(
-            name: "maritime_list_routes",
-            arguments: [:],
-            client: TestSupport.mockClient(),
-            cache: Cache()
-        )
-        XCTAssertNotEqual(result.isError, true)
-        let text = TestSupport.textContent(result)
-        XCTAssertTrue(text.contains("\"route_id\":\"MTR001\""))
-        XCTAssertTrue(text.contains("\"operator\":\"TWNC\""))
-    }
-
-    func testMaritimeStatusScheduleWrapsRawJSON() async {
-        let raw = Data(#"[{"DepartureTime":"08:00","ArrivalTime":"12:00"}]"#.utf8)
-        TestSupport.queueTokenThen(raw)
-
-        let result = await MaritimeTools.handleCall(
-            name: "maritime_status_schedule",
-            arguments: ["route_id": .string("MTR001")],
-            client: TestSupport.mockClient(),
-            cache: Cache()
-        )
-        XCTAssertNotEqual(result.isError, true)
-        let text = TestSupport.textContent(result)
-        XCTAssertTrue(text.contains("\"route_id\":\"MTR001\""), "envelope carries route_id")
-        XCTAssertTrue(text.contains("\"raw\":"), "raw passthrough wrapped")
-        XCTAssertTrue(text.contains("08:00"), "raw schedule content preserved")
     }
 
     // MARK: - Traffic

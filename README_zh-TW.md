@@ -6,12 +6,12 @@
 
 ## 狀態
 
-**v0.2-dev** — 23 個 tools，涵蓋 7 種交通模式（鐵路 / 公車 / 共享單車 / 航空 / 海運 / 路況 / 停車場）
+**v0.2-dev** — 21 個 tools，涵蓋 6 種交通模式（鐵路 / 公車 / 共享單車 / 航空 / 路況 / 停車場）
 
 Roadmap:
 - v0.1: Rail ✅（5 工具）
 - v0.2: 公車 + YouBike ✅（8 工具）
-- v0.3: 航班 + 渡輪 ✅（5 工具）
+- v0.3: 航班 ✅（3 工具；渡輪移除——TDX 無可呼叫的海運 API，見 #4）
 - v0.4: 路況 + 停車場 ✅（5 工具）
 - v1.0: Release pipeline + marketplace 上架
 
@@ -66,13 +66,6 @@ TDX 帳號免費註冊：<https://tdx.transportdata.tw/register>
 | `air_find_flights` | 依機場 + 到達／離開查當日航班排程 |
 | `air_status_flights` | 即時 FIDS 動態板 |
 
-### 海運（2）
-
-| Tool | 用途 |
-|------|------|
-| `maritime_list_routes` | 渡輪／海運航線總覽，可選 operator 過濾 |
-| `maritime_status_schedule` | 單一航線時刻表（raw TDX JSON pass-through）|
-
 ### 路況（3）
 
 | Tool | 用途 |
@@ -90,7 +83,7 @@ TDX 帳號免費註冊：<https://tdx.transportdata.tw/register>
 
 ## 架構特性
 
-- **唯讀**：23 個 tools 全為 GET，無執行風險
+- **唯讀**：21 個 tools 全為 GET，無執行風險
 - **三層快取 TTL**：24h（靜態：站點／路線／停車場／CCTV）· 1h（時刻表）· 5-10 min（新聞）· 0s（即時：ETA、位置、FIDS、停車即時資料）
 - **Rate limit**：TDX 免費層 50/min。429 觸發一次 1s 重試
 - **Empty ≠ error**：空結果是合法回傳，錯誤保留給系統層（auth/network/rate limit）

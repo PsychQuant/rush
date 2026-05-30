@@ -3,7 +3,7 @@
 [![Marketplace](https://img.shields.io/badge/marketplace-psychquant--claude--plugins-blue)](https://github.com/PsychQuant/psychquant-claude-plugins) [![Source](https://img.shields.io/badge/source-PsychQuant%2Fche--transport--mcp-blue)](https://github.com/PsychQuant/che-transport-mcp)
 
 Claude Code plugin wrapping the `che-transport-mcp` Swift MCP server.
-23 tools querying Taiwan's [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) across **Rail / Bus / Bike / Air / Maritime / Traffic / Parking**.
+21 tools querying Taiwan's [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) across **Rail / Bus / Bike / Air / Traffic / Parking**.
 
 ## Install
 

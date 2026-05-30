@@ -4,7 +4,7 @@ Plugin wrapper for the `che-transport-mcp` MCP server (Swift, source at [PsychQu
 
 ## What this plugin does
 
-Provides **23 MCP tools** querying Taiwan transport data via [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) across 7 transport modes. Read-only — no execution risk.
+Provides **21 MCP tools** querying Taiwan transport data via [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) across 6 transport modes. Read-only — no execution risk. (Maritime/ferry is not offered — TDX has no callable maritime endpoint; see PsychQuant/che-transport-mcp#4.)
 
 ## Tools surface
 
@@ -14,7 +14,6 @@ Provides **23 MCP tools** querying Taiwan transport data via [TDX 運輸資料�
 | Bus | 5 | `bus_search_routes`, `bus_search_stops`, `bus_find_routes`, `bus_status_arrivals`, `bus_status_positions` |
 | Bike | 3 | `bike_search_stations`, `bike_stations_nearby`, `bike_status_station` |
 | Air | 3 | `air_list_airports`, `air_find_flights`, `air_status_flights` |
-| Maritime | 2 | `maritime_list_routes`, `maritime_status_schedule` |
 | Traffic | 3 | `traffic_freeway_live`, `traffic_incidents`, `traffic_cctv` |
 | Parking | 2 | `parking_list_lots`, `parking_status` |
 

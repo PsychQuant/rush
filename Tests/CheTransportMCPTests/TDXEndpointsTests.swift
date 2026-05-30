@@ -41,10 +41,10 @@ final class TDXEndpointsTests: XCTestCase {
     // MARK: - Registry enumeration contract
 
     func testContractCaseCountMatchesExpected() {
-        // 7 modes: rail 12 (8 station + 2 timetable + TRA trainLive + TRA stationLive;
+        // 6 modes: rail 12 (8 station + 2 timetable + TRA trainLive + TRA stationLive;
         // THSR has no live board in TDX), air 2, bus 5, bike 2, traffic 3,
-        // maritime 2, parking 2 = 28.
-        XCTAssertEqual(TDXEndpoints.allContractCases.count, 28)
+        // parking 2 = 26. (Maritime removed — no live API on the TDX platform.)
+        XCTAssertEqual(TDXEndpoints.allContractCases.count, 26)
     }
 
     func testContractCaseKeysAreUnique() {

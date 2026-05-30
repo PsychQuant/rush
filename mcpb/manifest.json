@@ -3,8 +3,8 @@
   "name": "che-transport-mcp",
   "display_name": "Taiwan Transport (TDX)",
   "version": "0.2.3",
-  "description": "Real-time Taiwan transport queries via TDX — rail, bus, bike, air, maritime, traffic, parking",
-  "long_description": "23 MCP tools covering Taiwan's public-transport data across 7 modes: Rail (TRA / THSR / 6 metros), Bus (22 cities), Bike (YouBike 1.0 + 2.0), Air (FIDS), Maritime (ferries), Traffic (freeway live + incidents + CCTV), and Parking (off-street). Backed by the TDX 運輸資料流通服務 API (free tier, 50 req/min). Read-only — no execution risk. Requires a free TDX account; run `make setup-tdx` after install.",
+  "description": "Real-time Taiwan transport queries via TDX — rail, bus, bike, air, traffic, parking",
+  "long_description": "21 MCP tools covering Taiwan's public-transport data across 6 modes: Rail (TRA / THSR / 6 metros), Bus (22 cities), Bike (YouBike 1.0 + 2.0), Air (FIDS), Traffic (freeway live + incidents + CCTV), and Parking (off-street). Backed by the TDX 運輸資料流通服務 API (free tier, 50 req/min). Read-only — no execution risk. Requires a free TDX account; run `make setup-tdx` after install.",
   "author": {
     "name": "Che Cheng",
     "url": "https://github.com/kiki830621"
@@ -43,8 +43,6 @@
     { "name": "air_list_airports", "description": "Taiwan airport master (IATA codes)" },
     { "name": "air_find_flights", "description": "Schedule lookup by airport + Arrival/Departure" },
     { "name": "air_status_flights", "description": "Live FIDS board" },
-    { "name": "maritime_list_routes", "description": "Ferry route master, optional operator filter" },
-    { "name": "maritime_status_schedule", "description": "Per-route ferry schedule (raw TDX JSON)" },
     { "name": "traffic_freeway_live", "description": "Freeway section live speed / congestion" },
     { "name": "traffic_incidents", "description": "Traffic news / incidents with keyword filter" },
     { "name": "traffic_cctv", "description": "CCTV stream URLs along highways" },

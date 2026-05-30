@@ -22,7 +22,6 @@ enum TransportServer {
         await BusTools.register(into: registry, client: client, cache: cache)
         await BikeTools.register(into: registry, client: client, cache: cache)
         await AirTools.register(into: registry, client: client, cache: cache)
-        await MaritimeTools.register(into: registry, client: client, cache: cache)
         await TrafficTools.register(into: registry, client: client, cache: cache)
         await ParkingTools.register(into: registry, client: client, cache: cache)
 

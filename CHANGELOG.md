@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `TDXEndpoints` — single source of truth for every TDX API path; production tools resolve paths through it (no inline path literals).
+- Registry-driven live contract tests (`ContractTests`) — one assertion per non-static endpoint (not-404 → 200 → decode), opt-in via `TDX_CONTRACT`, skipped without credentials. New `contract-tests.yml` runs them nightly / on release / on dispatch (never on PRs).
+- `TDXDecode.list` — tolerates both bare-array and wrapped-object (`{…,"<Dataset>":[…]}`) TDX responses.
+
+### Fixed
+- Rail endpoint path drift (#4): THSR is `v2` not `v3`; THSR timetable is `DailyTimetable`; metro station is `v2/Rail/Metro/Station/{op}`; traffic news is `Live/News/Freeway`.
+- Wrapped-response silent-empty bugs in traffic (×3) and parking (×2) — production decoded `[]` because TDX wraps the array.
+- `FlightInfo.DepartureRemark`/`ArrivalRemark` decoded as `String` (was `LocalizedName`) — `air_find_flights` was returning empty.
+- `rail_status_train` uses the v3 `TrainLiveBoard` collection + `$filter` (the `/Train/{no}` path-param form 404s).
+
+### Removed
+- **Maritime tools** (`maritime_list_routes`, `maritime_status_schedule`). TDX serves no maritime endpoint on its unified API (every `v2`/`v3` `Maritime`/`Ship` path 404s) and the legacy PTX `Ship` API is decommissioned (403 regardless of auth). Tool count: 23 → 21, modes: 7 → 6. See #4.
+
 ## [0.2.3] — 2026-05-29
 
 ### Fixed

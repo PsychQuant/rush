@@ -6,12 +6,12 @@ A Model Context Protocol server providing real-time Taiwan transport queries via
 
 ## Status
 
-**v0.2-dev** — 23 tools across all 7 transport modes (Rail / Bus / Bike / Air / Maritime / Traffic / Parking)
+**v0.2-dev** — 21 tools across 6 transport modes (Rail / Bus / Bike / Air / Traffic / Parking)
 
 Roadmap:
 - v0.1: Rail ✅ (5 tools)
 - v0.2: Bus + Bike ✅ (8 tools)
-- v0.3: Air + Maritime ✅ (5 tools)
+- v0.3: Air ✅ (3 tools; maritime dropped — TDX has no callable maritime API, see #4)
 - v0.4: Traffic + Parking ✅ (5 tools)
 - v1.0: Release pipeline + marketplace
 
@@ -66,13 +66,6 @@ City is **required** for all Bus tools — 22 BusCity codes (`Taipei`, `NewTaipe
 | `air_find_flights` | Schedule lookup by airport + Arrival/Departure |
 | `air_status_flights` | Live FIDS board |
 
-### Maritime (2)
-
-| Tool | Purpose |
-|------|---------|
-| `maritime_list_routes` | Ferry route master, optional operator filter |
-| `maritime_status_schedule` | Per-route schedule (raw TDX JSON pass-through) |
-
 ### Traffic (3)
 
 | Tool | Purpose |
@@ -90,7 +83,7 @@ City is **required** for all Bus tools — 22 BusCity codes (`Taipei`, `NewTaipe
 
 ## Architecture
 
-- **Read-only**: all 23 tools are GET-only against TDX. No execution risk.
+- **Read-only**: all 21 tools are GET-only against TDX. No execution risk.
 - **Cache TTL tiers**: 24h static (stations / routes / lots / CCTV) · 1h timetables · 5-10 min news · 0s live (ETAs, positions, FIDS, parking availability).
 - **Rate limit**: TDX free tier is 50/min. 429 triggers a single 1s retry.
 - **Empty ≠ error**: empty result sets return normally; errors are system-level only.

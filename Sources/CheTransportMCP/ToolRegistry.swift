@@ -3,7 +3,7 @@ import Foundation
 import MCP
 
 /// Aggregates MCP `Tool` definitions and per-name dispatch handlers across
-/// transport-mode modules (Rail / Bus / Bike / Air / Maritime / Traffic / Parking).
+/// transport-mode modules (Rail / Bus / Bike / Air / Traffic / Parking).
 ///
 /// The MCP swift-sdk allows only **one** `withMethodHandler(ListTools.self)` and
 /// **one** `withMethodHandler(CallTool.self)` per `Server`; later calls overwrite

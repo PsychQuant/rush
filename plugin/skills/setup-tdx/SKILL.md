@@ -9,7 +9,7 @@ allowed-tools:
 
 # Setup TDX credentials for che-transport-mcp
 
-TDX 運輸資料流通服務 is the Taiwan government open-data API that all 23 tools in this plugin query. Free tier = 50 requests/min, no card needed.
+TDX 運輸資料流通服務 is the Taiwan government open-data API that all 21 tools in this plugin query. Free tier = 50 requests/min, no card needed.
 
 Setup has **two halves**, and it matters which one the user is stuck on:
 

@@ -8,9 +8,9 @@ import XCTest
 /// tools/list), then verifies:
 ///   1. The server identifies itself as "che-transport-mcp" with the
 ///      expected version.
-///   2. tools/list returns **exactly 23** tools.
+///   2. tools/list returns **exactly 21** tools.
 ///   3. Per-prefix counts match the design spec
-///      (rail=5, bus=5, bike=3, air=3, maritime=2, traffic=3, parking=2).
+///      (rail=5, bus=5, bike=3, air=3, traffic=3, parking=2).
 ///   4. Every tool entry has a non-empty `name`, `description`, and
 ///      `inputSchema` field.
 ///
@@ -109,15 +109,15 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
         XCTAssertNotNil(serverInfo?["version"] as? String,
                         "serverInfo.version should be present")
 
-        // 2. tools/list → tools field present and 23 entries
+        // 2. tools/list → tools field present and 21 entries
         guard let toolsResult = toolsResult else {
             return XCTFail("no response for tools/list (id=2). Raw stdout:\n\(outputText)")
         }
         guard let tools = toolsResult["tools"] as? [[String: Any]] else {
             return XCTFail("tools/list result missing `tools` array. Result was: \(toolsResult)")
         }
-        XCTAssertEqual(tools.count, 23,
-                       "expected 23 tools, got \(tools.count). Names: \(tools.compactMap { $0["name"] as? String })")
+        XCTAssertEqual(tools.count, 21,
+                       "expected 21 tools, got \(tools.count). Names: \(tools.compactMap { $0["name"] as? String })")
 
         // 3. Per-prefix counts match the design spec
         let names = tools.compactMap { $0["name"] as? String }
@@ -126,7 +126,6 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
             ("bus_",      5),
             ("bike_",     3),
             ("air_",      3),
-            ("maritime_", 2),
             ("traffic_",  3),
             ("parking_",  2)
         ]
