@@ -22,4 +22,4 @@
 
 ## 5. 驗證收尾
 
-- [ ] 5.1 執行四項 acceptance criteria 全面驗證。完成時：(1) `swift test`（mock unit）全綠且不需網路、(2) `TDX_CONTRACT=1 swift test` 全 endpoint 綠、(3) #4 的三個查詢實測非 404、(4) production code 內無 registry 以外的 TDX 路徑字面值。驗證：四項各自的指令／grep 結果逐項記錄於 #4 的驗證 comment。
+- [x] 5.1 執行四項 acceptance criteria 全面驗證。完成時：(1) `swift test`（mock unit）全綠且不需網路、(2) `TDX_CONTRACT=1 swift test` 全 endpoint 綠、(3) #4 的三個查詢實測非 404、(4) production code 內無 registry 以外的 TDX 路徑字面值。驗證：四項各自的指令／grep 結果逐項記錄於 #4 的驗證 comment。
