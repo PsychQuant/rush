@@ -78,7 +78,7 @@ enum ParkingTools {
     private static func executeListLots(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
         let city = try parseCity(arguments)
         let data = try await client.fetch(
-            path: "v1/Parking/OffStreet/CarPark/City/\(city.rawValue)",
+            path: TDXEndpoints.parkingCarPark(city.rawValue),
             cacheTTL: 86400,
             cache: cache
         )
@@ -116,7 +116,7 @@ enum ParkingTools {
             queryItems.append(URLQueryItem(name: "$filter", value: "CarParkID eq '\(lotID)'"))
         }
         let data = try await client.fetch(
-            path: "v1/Parking/OffStreet/ParkingAvailability/City/\(city.rawValue)",
+            path: TDXEndpoints.parkingAvailability(city.rawValue),
             queryItems: queryItems,
             cacheTTL: 0,
             cache: cache

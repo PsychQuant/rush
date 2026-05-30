@@ -159,7 +159,7 @@ enum BusTools {
     private static func executeSearchRoutes(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
         let (query, city) = try parseQueryCity(arguments)
         let data = try await client.fetch(
-            path: "v2/Bus/Route/City/\(city.rawValue)",
+            path: TDXEndpoints.busRoute(city.rawValue),
             cacheTTL: 86400,
             cache: cache
         )
@@ -180,7 +180,7 @@ enum BusTools {
     private static func executeSearchStops(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
         let (query, city) = try parseQueryCity(arguments)
         let data = try await client.fetch(
-            path: "v2/Bus/Stop/City/\(city.rawValue)",
+            path: TDXEndpoints.busStop(city.rawValue),
             cacheTTL: 86400,
             cache: cache
         )
@@ -211,7 +211,7 @@ enum BusTools {
         let city = try parseCity(arguments)
 
         let data = try await client.fetch(
-            path: "v2/Bus/StopOfRoute/City/\(city.rawValue)",
+            path: TDXEndpoints.busStopOfRoute(city.rawValue),
             cacheTTL: 3600,
             cache: cache
         )
@@ -236,7 +236,7 @@ enum BusTools {
         let city = try parseCity(arguments)
 
         let data = try await client.fetch(
-            path: "v2/Bus/EstimatedTimeOfArrival/City/\(city.rawValue)",
+            path: TDXEndpoints.busEstimatedTimeOfArrival(city.rawValue),
             queryItems: [URLQueryItem(name: "$filter", value: "StopUID eq '\(stopID)'")],
             cacheTTL: 0,
             cache: cache
@@ -261,7 +261,7 @@ enum BusTools {
         let city = try parseCity(arguments)
 
         let data = try await client.fetch(
-            path: "v2/Bus/RealTimeNearStop/City/\(city.rawValue)/\(routeName)",
+            path: TDXEndpoints.busRealTimeNearStop(city.rawValue, route: routeName),
             cacheTTL: 0,
             cache: cache
         )

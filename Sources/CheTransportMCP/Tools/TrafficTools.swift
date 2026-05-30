@@ -85,7 +85,7 @@ enum TrafficTools {
             queryItems.append(URLQueryItem(name: "$filter", value: "RoadID eq '\(roadID)'"))
         }
         let data = try await client.fetch(
-            path: "v2/Road/Traffic/Live/Freeway",
+            path: TDXEndpoints.trafficFreewayLive(),
             queryItems: queryItems,
             cacheTTL: 0,
             cache: cache
@@ -108,7 +108,7 @@ enum TrafficTools {
 
     private static func executeIncidents(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
         let data = try await client.fetch(
-            path: "v2/Road/Traffic/News",
+            path: TDXEndpoints.trafficNews(),
             cacheTTL: 300, // 5 min — news cycle slower than freeway live
             cache: cache
         )
@@ -141,7 +141,7 @@ enum TrafficTools {
             queryItems.append(URLQueryItem(name: "$filter", value: "RoadID eq '\(roadID)'"))
         }
         let data = try await client.fetch(
-            path: "v2/Road/Traffic/CCTV/Highway",
+            path: TDXEndpoints.trafficCCTVHighway(),
             queryItems: queryItems,
             cacheTTL: 86400, // CCTV inventory rarely changes
             cache: cache

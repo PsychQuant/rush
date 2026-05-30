@@ -189,7 +189,7 @@ enum RailTools {
             throw TDXError.decoding("system must be TRA or THSR for rail_find_trains (metros use station-based queries)")
         }
 
-        let path = "\(sys.apiPath)/DailyTrainTimetable/OD/\(from)/to/\(to)/\(date)"
+        let path = TDXEndpoints.railTimetableOD(sys, from: from, to: to, date: date)
         let data = try await client.fetch(
             path: path,
             cacheTTL: 3600,
@@ -214,7 +214,7 @@ enum RailTools {
             throw TDXError.decoding("system must be TRA or THSR for rail_status_train (live train board)")
         }
 
-        let path = "\(sys.apiPath)/TrainLiveBoard/Train/\(trainNo)"
+        let path = TDXEndpoints.railTrainLiveBoard(sys, trainNo: trainNo)
         let data = try await client.fetch(
             path: path,
             cacheTTL: 0,  // live data — do not cache
@@ -242,7 +242,7 @@ enum RailTools {
         // it's accepted in the schema but does not change the path. Future enhancement could
         // filter the result client-side.
 
-        let path = "\(sys.apiPath)/StationLiveBoard/Station/\(stationID)"
+        let path = TDXEndpoints.railStationLiveBoard(sys, stationID: stationID)
         let data = try await client.fetch(
             path: path,
             cacheTTL: 0,  // live data
@@ -270,7 +270,7 @@ enum RailTools {
             for sys in systemFilter {
                 group.addTask {
                     let data = try await client.fetch(
-                        path: "\(sys.apiPath)/Station",
+                        path: TDXEndpoints.railStation(sys),
                         cacheTTL: 86400,
                         cache: cache
                     )

@@ -69,7 +69,7 @@ enum MaritimeTools {
             queryItems.append(URLQueryItem(name: "$filter", value: "OperatorID eq '\(opID)'"))
         }
         let data = try await client.fetch(
-            path: "v2/Maritime/Route",
+            path: TDXEndpoints.maritimeRoute(),
             queryItems: queryItems,
             cacheTTL: 86400,
             cache: cache
@@ -95,7 +95,7 @@ enum MaritimeTools {
             throw TDXError.decoding("Missing required parameter: route_id")
         }
         let data = try await client.fetch(
-            path: "v2/Maritime/Schedule",
+            path: TDXEndpoints.maritimeSchedule(),
             queryItems: [URLQueryItem(name: "$filter", value: "RouteID eq '\(routeID)'")],
             cacheTTL: 3600,
             cache: cache

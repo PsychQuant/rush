@@ -126,7 +126,7 @@ enum BikeTools {
         let serviceType = parseServiceType(arguments["service_type"]?.stringValue)
 
         let data = try await client.fetch(
-            path: "v2/Bike/Station/City/\(city.rawValue)",
+            path: TDXEndpoints.bikeStation(city.rawValue),
             cacheTTL: 86400,
             cache: cache
         )
@@ -165,12 +165,12 @@ enum BikeTools {
         let city = try parseCity(arguments)
 
         let stationData = try await client.fetch(
-            path: "v2/Bike/Station/City/\(city.rawValue)",
+            path: TDXEndpoints.bikeStation(city.rawValue),
             cacheTTL: 86400,
             cache: cache
         )
         let availData = try await client.fetch(
-            path: "v2/Bike/Availability/City/\(city.rawValue)",
+            path: TDXEndpoints.bikeAvailability(city.rawValue),
             cacheTTL: 0,
             cache: cache
         )
@@ -217,7 +217,7 @@ enum BikeTools {
         let city = try parseCity(arguments)
 
         let data = try await client.fetch(
-            path: "v2/Bike/Availability/City/\(city.rawValue)",
+            path: TDXEndpoints.bikeAvailability(city.rawValue),
             queryItems: [URLQueryItem(name: "$filter", value: "StationUID eq '\(stationID)'")],
             cacheTTL: 0,
             cache: cache

@@ -92,7 +92,7 @@ enum AirTools {
 
     private static func executeListAirports(client: TDXClient, cache: Cache) async throws -> CallTool.Result {
         let data = try await client.fetch(
-            path: "v2/Air/Airport",
+            path: TDXEndpoints.airAirport(),
             cacheTTL: 86400,
             cache: cache
         )
@@ -111,7 +111,7 @@ enum AirTools {
 
     private static func executeFindFlights(arguments: [String: Value], client: TDXClient, cache: Cache, live: Bool) async throws -> CallTool.Result {
         let (airport, direction) = try parseAirportDirection(arguments)
-        let path = "v2/Air/FIDS/Airport/\(direction)/\(airport)"
+        let path = TDXEndpoints.airFIDS(direction: direction, airport: airport)
 
         var queryItems: [URLQueryItem] = []
         if !live, let flightNumber = arguments["flight_number"]?.stringValue {

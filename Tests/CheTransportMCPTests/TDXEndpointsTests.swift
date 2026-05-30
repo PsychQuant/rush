@@ -1,0 +1,60 @@
+import XCTest
+@testable import CheTransportMCP
+
+/// Pure (offline) tests for the endpoint registry. These lock in the #4 path
+/// fixes and the registry's enumerable contract — no network required.
+final class TDXEndpointsTests: XCTestCase {
+
+    // MARK: - #4 regression: rail path conventions
+
+    func testTRAStationPathUsesV3DatasetAfterSystem() {
+        XCTAssertEqual(TDXEndpoints.railStation(.TRA), "v3/Rail/TRA/Station")
+    }
+
+    func testTHSRStationPathUsesV2NotV3() {
+        // #4 root cause: THSR was wrongly on v3. TDX serves THSR under v2.
+        XCTAssertEqual(TDXEndpoints.railStation(.THSR), "v2/Rail/THSR/Station")
+    }
+
+    func testMetroStationPathPutsDatasetBeforeOperator() {
+        // Probe finding: v2/Rail/Metro/Station/{op} is 200; the old
+        // v2/Rail/Metro/{op}/Station ordering was 404.
+        XCTAssertEqual(TDXEndpoints.railStation(.TRTC), "v2/Rail/Metro/Station/TRTC")
+        XCTAssertEqual(TDXEndpoints.railStation(.KRTC), "v2/Rail/Metro/Station/KRTC")
+    }
+
+    func testTHSRTimetableUsesDailyTimetableDatasetOnV2() {
+        // #4: THSR uses DailyTimetable (not TRA's DailyTrainTimetable) on v2.
+        XCTAssertEqual(
+            TDXEndpoints.railTimetableOD(.THSR, from: "1000", to: "1070", date: "2026-05-30"),
+            "v2/Rail/THSR/DailyTimetable/OD/1000/to/1070/2026-05-30"
+        )
+    }
+
+    func testTRATimetableUsesDailyTrainTimetableDatasetOnV3() {
+        XCTAssertEqual(
+            TDXEndpoints.railTimetableOD(.TRA, from: "1000", to: "1070", date: "2026-05-30"),
+            "v3/Rail/TRA/DailyTrainTimetable/OD/1000/to/1070/2026-05-30"
+        )
+    }
+
+    // MARK: - Registry enumeration contract
+
+    func testContractCaseCountMatchesExpected() {
+        // 7 modes: rail 14 (8 station + 2 timetable + 2 trainLive + 2 stationLive),
+        // air 2, bus 5, bike 2, traffic 3, maritime 2, parking 2 = 30.
+        XCTAssertEqual(TDXEndpoints.allContractCases.count, 30)
+    }
+
+    func testContractCaseKeysAreUnique() {
+        let keys = TDXEndpoints.allContractCases.map(\.key)
+        XCTAssertEqual(Set(keys).count, keys.count, "Duplicate contract-case keys: \(keys)")
+    }
+
+    func testEveryContractCaseHasNonEmptyConcretePath() {
+        for c in TDXEndpoints.allContractCases {
+            XCTAssertFalse(c.path.isEmpty, "Empty path for \(c.key)")
+            XCTAssertFalse(c.path.contains("{"), "Unfilled template placeholder in \(c.key): \(c.path)")
+        }
+    }
+}

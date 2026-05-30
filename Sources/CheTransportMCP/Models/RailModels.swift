@@ -95,16 +95,7 @@ enum RailSystem: String, CaseIterable, Codable {
         }
     }
 
-    var apiPath: String {
-        switch self {
-        case .TRA: return "v3/Rail/TRA"
-        case .THSR: return "v3/Rail/THSR"
-        case .TRTC: return "v2/Rail/Metro/TRTC"
-        case .TYMC: return "v2/Rail/Metro/TYMC"
-        case .KRTC: return "v2/Rail/Metro/KRTC"
-        case .TMRT: return "v2/Rail/Metro/TMRT"
-        case .NTDLRT: return "v2/Rail/Metro/NTDLRT"
-        case .KLRT: return "v2/Rail/Metro/KLRT"
-        }
-    }
+    // TDX endpoint paths live in TDXEndpoints (single source of truth). Rail
+    // path conventions differ per system (TRA v3, THSR v2, metros operator-last),
+    // so resolve via TDXEndpoints.railStation(_:) etc. rather than a path prefix here.
 }

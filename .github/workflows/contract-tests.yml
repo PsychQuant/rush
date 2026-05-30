@@ -1,0 +1,54 @@
+name: contract-tests
+
+# Live TDX contract tests — they hit the real TDX API, so they run on a
+# schedule, before a release, and on manual dispatch, but NEVER on an ordinary
+# pull request (TDX maintenance / rate-limit blips must not redden unrelated
+# PRs). Mock-based unit tests live in test.yml and run on every PR.
+on:
+  schedule:
+    # 02:00 Asia/Taipei (18:00 UTC) — off-peak, fresh daily rate-limit budget.
+    - cron: "0 18 * * *"
+  workflow_dispatch: {}
+  release:
+    types: [published]   # release gate: verify endpoints before shipping
+
+# Never run two live suites at once — they share one TDX rate-limit bucket.
+concurrency:
+  group: contract-tests
+  cancel-in-progress: false
+
+jobs:
+  contract:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: swift --version
+
+      - name: Cache .build
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Build
+        run: swift build
+
+      - name: Live contract tests
+        run: swift test --filter ContractTests
+        env:
+          # Opt-in gate (see ContractTests.requireContractEnabled).
+          TDX_CONTRACT: "1"
+          # Credentials injected from repo secrets — CI runners have no keychain.
+          # Register them: Settings → Secrets and variables → Actions.
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+          # Spacing between live requests. TDX's free tier throttles aggressively
+          # on bursts; 8s keeps a ~30-endpoint sweep comfortably under the limit.
+          # Raise this if nightly runs report transient "rate limited" failures.
+          TDX_CONTRACT_DELAY_MS: "8000"
