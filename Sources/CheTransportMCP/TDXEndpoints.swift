@@ -43,20 +43,16 @@ enum TDXEndpoints {
         }
     }
 
-    /// Live delay board for one train. TRA/THSR only.
-    static func railTrainLiveBoard(_ sys: RailSystem, trainNo: String) -> String {
-        switch sys {
-        case .THSR: return "v2/Rail/THSR/TrainLiveBoard/Train/\(trainNo)"
-        default:    return "v3/Rail/TRA/TrainLiveBoard/Train/\(trainNo)"
-        }
-    }
+    /// Live train-delay board (collection). **TRA only** — v3 dropped the
+    /// `/Train/{no}` path-param form (404), so callers narrow to one train with
+    /// a `$filter=TrainNo` query; and TDX provides no THSR train live board.
+    static func railTrainLiveBoard() -> String { "v3/Rail/TRA/TrainLiveBoard" }
 
-    /// Live arrivals board for one station. TRA/THSR only.
-    static func railStationLiveBoard(_ sys: RailSystem, stationID: String) -> String {
-        switch sys {
-        case .THSR: return "v2/Rail/THSR/StationLiveBoard/Station/\(stationID)"
-        default:    return "v3/Rail/TRA/StationLiveBoard/Station/\(stationID)"
-        }
+    /// Live arrivals board for one TRA station (the `/Station/{id}` path-param
+    /// form still works on v3). **TRA only** — TDX provides no THSR station
+    /// live board.
+    static func railStationLiveBoard(stationID: String) -> String {
+        "v3/Rail/TRA/StationLiveBoard/Station/\(stationID)"
     }
 
     // MARK: - Air
@@ -133,6 +129,26 @@ extension TDXEndpoints {
         { data in _ = try JSONDecoder().decode([T].self, from: data) }
     }
 
+    /// Strict decode for endpoints whose body may be a bare array OR a wrapped
+    /// object (`{…metadata…, "<Dataset>": [...] }` — TDX Road/Traffic, Parking).
+    /// Mirrors production's `TDXDecode.list` but THROWS on schema drift so the
+    /// contract catches model mismatches.
+    private static func wrappedArrayDecoder<T: Decodable>(_ type: T.Type) -> (Data) throws -> Void {
+        { data in
+            let decoder = JSONDecoder()
+            if (try? decoder.decode([T].self, from: data)) != nil { return }
+            let obj = try JSONSerialization.jsonObject(with: data)
+            guard let dict = obj as? [String: Any] else {
+                throw TDXError.decoding("expected bare array or wrapped object, got \(Swift.type(of: obj))")
+            }
+            guard let arr = dict.values.first(where: { $0 is [Any] }) as? [Any],
+                  let arrData = try? JSONSerialization.data(withJSONObject: arr) else {
+                throw TDXError.decoding("wrapped object has no array field")
+            }
+            _ = try decoder.decode([T].self, from: arrData)
+        }
+    }
+
     /// Rail station lists arrive wrapped (`{"Stations":[…]}`, TRA v3) or bare
     /// (metros / THSR). Accept either; throw if neither decodes.
     private static func decodeStationListStrict(_ data: Data) throws {
@@ -166,9 +182,9 @@ extension TDXEndpoints {
                 decode: decodeStationListStrict
             ))
         }
-        // Rail — TRA/THSR timetable + live boards. Production passes these
-        // through raw (no model decode), so the contract validates well-formed
-        // JSON; the not-404 / 200 layers still guard path correctness.
+        // Rail — TRA/THSR O/D timetable (both systems expose it). Production
+        // passes these through raw (no model decode), so the contract validates
+        // well-formed JSON; the not-404 / 200 layers guard path correctness.
         for sys in [RailSystem.TRA, .THSR] {
             cases.append(ContractCase(
                 key: "rail.\(sys.rawValue).timetableOD",
@@ -176,19 +192,15 @@ extension TDXEndpoints {
                 path: railTimetableOD(sys, from: "1000", to: "1070", date: date),
                 decode: decodeAnyJSON
             ))
-            cases.append(ContractCase(
-                key: "rail.\(sys.rawValue).trainLiveBoard",
-                mode: "rail",
-                path: railTrainLiveBoard(sys, trainNo: "1"),
-                decode: decodeAnyJSON
-            ))
-            cases.append(ContractCase(
-                key: "rail.\(sys.rawValue).stationLiveBoard",
-                mode: "rail",
-                path: railStationLiveBoard(sys, stationID: "1000"),
-                decode: decodeAnyJSON
-            ))
         }
+        // Rail — live boards are TRA-only (TDX provides none for THSR). Raw
+        // pass-through, so the contract validates well-formed JSON.
+        cases.append(ContractCase(
+            key: "rail.TRA.trainLiveBoard", mode: "rail",
+            path: railTrainLiveBoard(), decode: decodeAnyJSON))
+        cases.append(ContractCase(
+            key: "rail.TRA.stationLiveBoard", mode: "rail",
+            path: railStationLiveBoard(stationID: "1000"), decode: decodeAnyJSON))
 
         // Air
         cases.append(ContractCase(key: "air.airport", mode: "air",
@@ -214,13 +226,13 @@ extension TDXEndpoints {
         cases.append(ContractCase(key: "bike.availability", mode: "bike",
             path: bikeAvailability(city), decode: arrayDecoder(BikeAvailability.self)))
 
-        // Traffic
+        // Traffic — v2 Road/Traffic wraps the data array in an object.
         cases.append(ContractCase(key: "traffic.freewayLive", mode: "traffic",
-            path: trafficFreewayLive(), decode: arrayDecoder(FreewayLive.self)))
+            path: trafficFreewayLive(), decode: wrappedArrayDecoder(FreewayLive.self)))
         cases.append(ContractCase(key: "traffic.news", mode: "traffic",
-            path: trafficNews(), decode: arrayDecoder(TrafficIncident.self)))
+            path: trafficNews(), decode: wrappedArrayDecoder(TrafficIncident.self)))
         cases.append(ContractCase(key: "traffic.cctv", mode: "traffic",
-            path: trafficCCTVHighway(), decode: arrayDecoder(TrafficCCTV.self)))
+            path: trafficCCTVHighway(), decode: wrappedArrayDecoder(TrafficCCTV.self)))
 
         // Maritime
         cases.append(ContractCase(key: "maritime.route", mode: "maritime",
@@ -228,11 +240,11 @@ extension TDXEndpoints {
         cases.append(ContractCase(key: "maritime.schedule", mode: "maritime",
             path: maritimeSchedule(), decode: decodeAnyJSON))
 
-        // Parking (representative city)
+        // Parking (representative city) — v1 Parking wraps the data array.
         cases.append(ContractCase(key: "parking.carPark", mode: "parking",
-            path: parkingCarPark(city), decode: arrayDecoder(ParkingLot.self)))
+            path: parkingCarPark(city), decode: wrappedArrayDecoder(ParkingLot.self)))
         cases.append(ContractCase(key: "parking.availability", mode: "parking",
-            path: parkingAvailability(city), decode: arrayDecoder(ParkingAvailability.self)))
+            path: parkingAvailability(city), decode: wrappedArrayDecoder(ParkingAvailability.self)))
 
         return cases
     }

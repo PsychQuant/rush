@@ -82,7 +82,7 @@ enum ParkingTools {
             cacheTTL: 86400,
             cache: cache
         )
-        let lots = (try? JSONDecoder().decode([ParkingLot].self, from: data)) ?? []
+        let lots = TDXDecode.list(ParkingLot.self, from: data)
         let keyword = arguments["keyword"]?.stringValue?.lowercased() ?? ""
         let filtered = keyword.isEmpty ? lots : lots.filter { lot in
             let hay = [lot.carParkName?.zhTw, lot.carParkName?.en, lot.address]
@@ -121,7 +121,7 @@ enum ParkingTools {
             cacheTTL: 0,
             cache: cache
         )
-        let entries = (try? JSONDecoder().decode([ParkingAvailability].self, from: data)) ?? []
+        let entries = TDXDecode.list(ParkingAvailability.self, from: data)
         let payload = entries.map { entry -> [String: Any] in
             [
                 "lot_id": entry.carParkID,

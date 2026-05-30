@@ -135,8 +135,8 @@ enum AirTools {
                 "schedule_arr": flight.scheduleArrivalTime ?? "",
                 "actual_dep": flight.actualDepartureTime ?? "",
                 "actual_arr": flight.actualArrivalTime ?? "",
-                "status_dep": flight.departureRemark?.zhTw ?? "",
-                "status_arr": flight.arrivalRemark?.zhTw ?? "",
+                "status_dep": flight.departureRemark ?? "",
+                "status_arr": flight.arrivalRemark ?? "",
                 "terminal": flight.terminal ?? "",
                 "gate": flight.gate ?? "",
                 "updated_at": flight.updateTime ?? ""

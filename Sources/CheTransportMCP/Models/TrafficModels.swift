@@ -1,24 +1,21 @@
 // Sources/CheTransportMCP/Models/TrafficModels.swift
 import Foundation
 
-/// Live freeway traffic snapshot. TDX returns one entry per section per direction.
+/// Live freeway traffic snapshot. TDX's `Live/Freeway` is section-based: one
+/// entry per road section with its current travel time, speed and congestion.
 struct FreewayLive: Codable {
-    let roadID: String?
-    let roadName: String?
     let sectionID: String?
-    let direction: Int?              // 0=北上, 1=南下 (per TDX convention)
-    let speed: Double?               // km/h
     let travelTime: Int?             // seconds for this section
-    let congestionLevel: Int?        // 1=順暢, 2=車多, 3=壅塞, 4=阻塞
+    let travelSpeed: Double?         // km/h
+    let congestionLevelID: String?   // numeric level as string ("1"…"5")
+    let congestionLevel: String?     // text level ("順暢", "車多", "壅塞"…)
     let dataCollectTime: String?
 
     enum CodingKeys: String, CodingKey {
-        case roadID = "RoadID"
-        case roadName = "RoadName"
         case sectionID = "SectionID"
-        case direction = "Direction"
-        case speed = "Speed"
         case travelTime = "TravelTime"
+        case travelSpeed = "TravelSpeed"
+        case congestionLevelID = "CongestionLevelID"
         case congestionLevel = "CongestionLevel"
         case dataCollectTime = "DataCollectTime"
     }
@@ -27,7 +24,8 @@ struct FreewayLive: Codable {
 struct TrafficIncident: Codable {
     let newsID: String?
     let title: String?
-    let description: String?
+    let newsURL: String?
+    let description: String?       // absent in freeway News; present in other news datasets
     let startTime: String?
     let endTime: String?
     let roadName: String?
@@ -36,6 +34,7 @@ struct TrafficIncident: Codable {
     enum CodingKeys: String, CodingKey {
         case newsID = "NewsID"
         case title = "Title"
+        case newsURL = "NewsURL"
         case description = "Description"
         case startTime = "StartTime"
         case endTime = "EndTime"
@@ -47,17 +46,21 @@ struct TrafficIncident: Codable {
 struct TrafficCCTV: Codable {
     let cctvID: String
     let roadID: String?
-    let locationName: LocalizedName?
+    let roadName: String?
     let videoStreamURL: String?
-    let imageURL: String?
-    let position: RailPosition?
+    let videoImageURL: String?
+    let positionLon: Double?        // TDX puts coordinates at the top level, not in a Position object
+    let positionLat: Double?
+    let surveillanceDescription: String?
 
     enum CodingKeys: String, CodingKey {
         case cctvID = "CCTVID"
         case roadID = "RoadID"
-        case locationName = "LocationName"
+        case roadName = "RoadName"
         case videoStreamURL = "VideoStreamURL"
-        case imageURL = "ImageURL"
-        case position = "Position"
+        case videoImageURL = "VideoImageURL"
+        case positionLon = "PositionLon"
+        case positionLat = "PositionLat"
+        case surveillanceDescription = "SurveillanceDescription"
     }
 }

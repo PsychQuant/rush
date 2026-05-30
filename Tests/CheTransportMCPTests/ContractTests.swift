@@ -26,32 +26,18 @@ final class ContractTests: XCTestCase {
     ///
     /// Follow-up tracked in PsychQuant/che-transport-mcp#4.
     static let knownPending: [String: String] = [
-        // --- Rail live boards ---
-        "rail.TRA.trainLiveBoard":
-            "v3 dropped the /Train/{no} path-param form (404); rail_status_train needs the collection form + $filter=TrainNo",
-        "rail.THSR.trainLiveBoard":
-            "TDX provides no THSR TrainLiveBoard (404); rail_status_train should drop THSR (tool-schema change, a Non-Goal here)",
-        "rail.THSR.stationLiveBoard":
-            "TDX provides no THSR StationLiveBoard (404); rail_status_station should drop THSR (tool-schema change, a Non-Goal here)",
-        // --- Wrapped-response decode bugs (TDX returns {…,\"<Dataset>\":[…]}, production decodes a bare array → []) ---
-        "traffic.freewayLive":
-            "v2 Road/Traffic returns a wrapped object, not a bare array; traffic_freeway_live decodes [] — needs a wrapper model",
-        "traffic.news":
-            "#4 path fix landed (now 200 at Live/News/Freeway), but the body is a wrapped object; traffic_incidents decodes [] — needs a wrapper model",
-        "traffic.cctv":
-            "v2 Road/Traffic CCTV returns a wrapped object, not a bare array; traffic_cctv decodes [] — needs a wrapper model",
-        "parking.carPark":
-            "v1 Parking returns a wrapped object, not a bare array; parking_list_lots decodes [] — needs a wrapper model",
-        "parking.availability":
-            "v1 Parking returns a wrapped object, not a bare array; parking_status decodes [] — needs a wrapper model",
-        // --- Model mismatch ---
-        "air.fids":
-            "FlightInfo.DepartureRemark/ArrivalRemark are typed LocalizedName but TDX FIDS returns a String; air_find_flights/air_status_flights decode [] — needs a model fix",
-        // --- Path drift (correct path TBD via swagger) ---
+        // Maritime is NOT served from the unified TDX API host
+        // (tdx.transportdata.tw/api/basic/) — every v2/* and v3/Maritime/* path
+        // there 404s. The TDX swagger reveals 航運 (maritime) is still on the
+        // legacy PTX backend at https://ptx.transportdata.tw/Ship_backend/, a
+        // different host (and likely different auth). Supporting it needs a
+        // separate base-URL/client integration, which is out of scope for this
+        // endpoint-registry change. Quarantined until that integration lands;
+        // all other contract endpoints are fixed and expected to pass.
         "maritime.route":
-            "v2/Maritime/Route returns 404 — path drift; maritime_list_routes broken, correct path needs swagger lookup",
+            "served on the legacy PTX Ship_backend host, not tdx.../api/basic — needs a separate integration",
         "maritime.schedule":
-            "v2/Maritime/Schedule returns 404 — path drift; maritime_status_schedule broken, correct path needs swagger lookup",
+            "served on the legacy PTX Ship_backend host, not tdx.../api/basic — needs a separate integration",
     ]
 
     /// Spacing between live requests to stay under TDX's per-minute rate limit

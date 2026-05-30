@@ -90,16 +90,14 @@ enum TrafficTools {
             cacheTTL: 0,
             cache: cache
         )
-        let entries = (try? JSONDecoder().decode([FreewayLive].self, from: data)) ?? []
+        let entries = TDXDecode.list(FreewayLive.self, from: data)
         let payload = entries.map { entry -> [String: Any] in
             [
-                "road_id": entry.roadID ?? "",
-                "road_name": entry.roadName ?? "",
                 "section_id": entry.sectionID ?? "",
-                "direction": entry.direction ?? -1,
-                "speed_kmh": entry.speed ?? -1,
                 "travel_time_s": entry.travelTime ?? -1,
-                "congestion": entry.congestionLevel ?? 0,
+                "speed_kmh": entry.travelSpeed ?? -1,
+                "congestion_level": entry.congestionLevelID ?? "",
+                "congestion_text": entry.congestionLevel ?? "",
                 "collected_at": entry.dataCollectTime ?? ""
             ]
         }
@@ -112,7 +110,7 @@ enum TrafficTools {
             cacheTTL: 300, // 5 min — news cycle slower than freeway live
             cache: cache
         )
-        let incidents = (try? JSONDecoder().decode([TrafficIncident].self, from: data)) ?? []
+        let incidents = TDXDecode.list(TrafficIncident.self, from: data)
         let keyword = arguments["keyword"]?.stringValue?.lowercased() ?? ""
         let filtered = keyword.isEmpty ? incidents : incidents.filter { incident in
             let hay = [incident.title, incident.description, incident.roadName]
@@ -125,6 +123,7 @@ enum TrafficTools {
             [
                 "news_id": incident.newsID ?? "",
                 "title": incident.title ?? "",
+                "url": incident.newsURL ?? "",
                 "description": incident.description ?? "",
                 "road_name": incident.roadName ?? "",
                 "start_time": incident.startTime ?? "",
@@ -146,19 +145,19 @@ enum TrafficTools {
             cacheTTL: 86400, // CCTV inventory rarely changes
             cache: cache
         )
-        let cctvs = (try? JSONDecoder().decode([TrafficCCTV].self, from: data)) ?? []
+        let cctvs = TDXDecode.list(TrafficCCTV.self, from: data)
         let payload = cctvs.map { cctv -> [String: Any] in
             var dict: [String: Any] = [
                 "cctv_id": cctv.cctvID,
                 "road_id": cctv.roadID ?? "",
-                "location_zh": cctv.locationName?.zhTw ?? "",
-                "location_en": cctv.locationName?.en ?? "",
+                "road_name": cctv.roadName ?? "",
+                "location": cctv.surveillanceDescription ?? "",
                 "video_url": cctv.videoStreamURL ?? "",
-                "image_url": cctv.imageURL ?? ""
+                "image_url": cctv.videoImageURL ?? ""
             ]
-            if let pos = cctv.position {
-                dict["lat"] = pos.positionLat
-                dict["lon"] = pos.positionLon
+            if let lat = cctv.positionLat, let lon = cctv.positionLon {
+                dict["lat"] = lat
+                dict["lon"] = lon
             }
             return dict
         }

@@ -24,9 +24,10 @@ struct FlightInfo: Codable {
     let scheduleArrivalTime: String?
     let actualDepartureTime: String?
     let actualArrivalTime: String?
-    /// Localized status text (e.g. "On Time", "Delayed", "Boarding").
-    let departureRemark: LocalizedName?
-    let arrivalRemark: LocalizedName?
+    /// Status text (e.g. "On Time", "Delayed", "Boarding"). TDX FIDS returns
+    /// these as plain strings, not a localized {Zh_tw,En} object.
+    let departureRemark: String?
+    let arrivalRemark: String?
     let terminal: String?
     let gate: String?
     let updateTime: String?

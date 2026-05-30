@@ -81,7 +81,7 @@ enum RailTools {
             ),
             Tool(
                 name: "rail_status_train",
-                description: "查特定列車的即時誤點與位置。僅支援 TRA 與 THSR（捷運即時資料使用 station-board）。",
+                description: "查特定列車（TRA）的即時誤點與位置。TDX 未提供高鐵（THSR）即時車況，故僅支援 TRA。",
                 inputSchema: .object([
                     "type": .string("object"),
                     "properties": .object([
@@ -91,8 +91,8 @@ enum RailTools {
                         ]),
                         "system": .object([
                             "type": .string("string"),
-                            "description": .string("鐵路系統代碼，僅支援 TRA 或 THSR"),
-                            "enum": .array([.string("TRA"), .string("THSR")])
+                            "description": .string("鐵路系統代碼，僅支援 TRA"),
+                            "enum": .array([.string("TRA")])
                         ])
                     ]),
                     "required": .array([.string("train_no"), .string("system")]),
@@ -102,7 +102,7 @@ enum RailTools {
             ),
             Tool(
                 name: "rail_status_station",
-                description: "查特定站點近期到站列車（含誤點）。預設視窗 60 分鐘。僅支援 TRA 與 THSR。",
+                description: "查特定站點（TRA）近期到站列車（含誤點）。預設視窗 60 分鐘。TDX 未提供高鐵（THSR）即時車況，故僅支援 TRA。",
                 inputSchema: .object([
                     "type": .string("object"),
                     "properties": .object([
@@ -112,8 +112,8 @@ enum RailTools {
                         ]),
                         "system": .object([
                             "type": .string("string"),
-                            "description": .string("鐵路系統代碼，僅支援 TRA 或 THSR"),
-                            "enum": .array([.string("TRA"), .string("THSR")])
+                            "description": .string("鐵路系統代碼，僅支援 TRA"),
+                            "enum": .array([.string("TRA")])
                         ]),
                         "window_min": .object([
                             "type": .string("integer"),
@@ -210,13 +210,14 @@ enum RailTools {
         guard let sys = RailSystem(rawValue: sysCode) else {
             throw TDXError.decoding("Invalid system '\(sysCode)'. Use rail_list_systems.")
         }
-        guard sys == .TRA || sys == .THSR else {
-            throw TDXError.decoding("system must be TRA or THSR for rail_status_train (live train board)")
+        guard sys == .TRA else {
+            throw TDXError.decoding("system must be TRA for rail_status_train (TDX provides no THSR live board)")
         }
 
-        let path = TDXEndpoints.railTrainLiveBoard(sys, trainNo: trainNo)
+        // v3 filters the live-board collection by query, not a /Train/{no} path segment.
         let data = try await client.fetch(
-            path: path,
+            path: TDXEndpoints.railTrainLiveBoard(),
+            queryItems: [URLQueryItem(name: "$filter", value: "TrainNo eq '\(trainNo)'")],
             cacheTTL: 0,  // live data — do not cache
             cache: cache
         )
@@ -234,15 +235,15 @@ enum RailTools {
         guard let sys = RailSystem(rawValue: sysCode) else {
             throw TDXError.decoding("Invalid system '\(sysCode)'. Use rail_list_systems.")
         }
-        guard sys == .TRA || sys == .THSR else {
-            throw TDXError.decoding("system must be TRA or THSR for rail_status_station (live station board)")
+        guard sys == .TRA else {
+            throw TDXError.decoding("system must be TRA for rail_status_station (TDX provides no THSR live board)")
         }
 
         // window_min is currently informational (TDX endpoint returns a default window);
         // it's accepted in the schema but does not change the path. Future enhancement could
         // filter the result client-side.
 
-        let path = TDXEndpoints.railStationLiveBoard(sys, stationID: stationID)
+        let path = TDXEndpoints.railStationLiveBoard(stationID: stationID)
         let data = try await client.fetch(
             path: path,
             cacheTTL: 0,  // live data

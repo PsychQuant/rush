@@ -209,8 +209,8 @@ final class ModeExecutorTests: XCTestCase {
 
     func testTrafficFreewayLiveAssembles() async {
         let fixture = Data("""
-        [{"RoadID":"000010","RoadName":"國道1號","SectionID":"0001","Direction":0,
-          "Speed":78.5,"TravelTime":120,"CongestionLevel":2,"DataCollectTime":"2026-05-28T09:00:00+08:00"}]
+        [{"SectionID":"0001","TravelTime":120,"TravelSpeed":78.5,
+          "CongestionLevelID":"2","CongestionLevel":"車多","DataCollectTime":"2026-05-28T09:00:00+08:00"}]
         """.utf8)
         TestSupport.queueTokenThen(fixture)
 
@@ -222,8 +222,8 @@ final class ModeExecutorTests: XCTestCase {
         )
         XCTAssertNotEqual(result.isError, true)
         let text = TestSupport.textContent(result)
-        XCTAssertTrue(text.contains("\"road_id\":\"000010\""))
-        XCTAssertTrue(text.contains("\"congestion\":2"))
+        XCTAssertTrue(text.contains("\"section_id\":\"0001\""))
+        XCTAssertTrue(text.contains("\"congestion_text\":\"車多\""))
     }
 
     func testTrafficIncidentsKeywordFilter() async {
@@ -249,9 +249,9 @@ final class ModeExecutorTests: XCTestCase {
 
     func testTrafficCCTVAssemblesStreamURLs() async {
         let fixture = Data("""
-        [{"CCTVID":"CCTV-001","RoadID":"000010","LocationName":{"Zh_tw":"汐止系統","En":"Xizhi"},
-          "VideoStreamURL":"https://example.com/s.m3u8","ImageURL":"https://example.com/i.jpg",
-          "Position":{"PositionLat":25.07,"PositionLon":121.65}}]
+        [{"CCTVID":"CCTV-001","RoadID":"000010","RoadName":"國道1號",
+          "VideoStreamURL":"https://example.com/s.m3u8","VideoImageURL":"https://example.com/i.jpg",
+          "PositionLon":121.65,"PositionLat":25.07,"SurveillanceDescription":"汐止系統"}]
         """.utf8)
         TestSupport.queueTokenThen(fixture)
 
@@ -265,6 +265,7 @@ final class ModeExecutorTests: XCTestCase {
         let text = TestSupport.textContent(result)
         XCTAssertTrue(text.contains("\"cctv_id\":\"CCTV-001\""))
         XCTAssertTrue(text.contains("m3u8"), "video stream URL passed through")
+        XCTAssertTrue(text.contains("\"lat\":25.07"), "top-level coordinates captured")
     }
 
     // MARK: - Parking
