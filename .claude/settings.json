@@ -1,6 +1,3 @@
 {
-  "includeGitInstructions": false,
-  "worktree": {
-    "bgIsolation": "none"
-  }
+  "includeGitInstructions": false
 }
