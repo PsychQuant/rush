@@ -56,4 +56,15 @@ final class MetroModelsTests: XCTestCase {
         XCTAssertEqual(bl.lineName?.zhTw, "板南線")
         XCTAssertEqual(bl.lineColor, "#0a59ae")
     }
+
+    func testParseLineTransfer() throws {
+        let transfers = try JSONDecoder().decode([MetroLineTransfer].self, from: fixture("metro_line_transfer"))
+        XCTAssertEqual(transfers.count, 2)
+        let taipeiMain = try XCTUnwrap(transfers.first { $0.fromStationID == "BL12" })
+        XCTAssertEqual(taipeiMain.fromLineID, "BL")
+        XCTAssertEqual(taipeiMain.toLineID, "R")
+        XCTAssertEqual(taipeiMain.toStationID, "R10")
+        XCTAssertEqual(taipeiMain.transferTime, 4)
+        XCTAssertEqual(taipeiMain.isOnSiteTransfer, 1)
+    }
 }

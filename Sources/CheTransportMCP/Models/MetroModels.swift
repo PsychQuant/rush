@@ -169,3 +169,33 @@ struct MetroLine: Codable {
         case lineColor = "LineColor"
     }
 }
+
+// MARK: - LineTransfer
+
+/// One inter-line transfer at an interchange station — the graph's transfer edge.
+/// `transferTime` is TDX's platform-walk time in minutes (hard data); the same
+/// physical station carries a different StationID per line (e.g. 台北車站 = BL12 /
+/// R10), and these rows are exactly what bridge those IDs in the routing graph.
+struct MetroLineTransfer: Codable {
+    let fromLineID: String?
+    let fromStationID: String
+    let fromStationName: LocalizedName?
+    let toLineID: String?
+    let toStationID: String
+    let toStationName: LocalizedName?
+    let isOnSiteTransfer: Int?
+    let transferTime: Int
+    let transferDescription: String?
+
+    enum CodingKeys: String, CodingKey {
+        case fromLineID = "FromLineID"
+        case fromStationID = "FromStationID"
+        case fromStationName = "FromStationName"
+        case toLineID = "ToLineID"
+        case toStationID = "ToStationID"
+        case toStationName = "ToStationName"
+        case isOnSiteTransfer = "IsOnSiteTransfer"
+        case transferTime = "TransferTime"
+        case transferDescription = "TransferDescription"
+    }
+}

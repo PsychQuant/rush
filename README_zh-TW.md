@@ -37,7 +37,7 @@ TDX 帳號免費註冊：<https://tdx.transportdata.tw/register>
 | `rail_find_trains` | O/D + 日期找班次（台鐵 / 高鐵）|
 | `rail_status_train` | 特定列車即時誤點 |
 | `rail_status_station` | 站到站板（即時）|
-| `metro_find_route` | 捷運直達 O/D：連接線 + 站到站旅行時間 + 當下時段班距（僅直達；轉乘見 #6）|
+| `metro_find_route` | 捷運 O/D 路線（含跨線轉乘）：站點網路最短路徑，回 `legs[]`（每段所搭路線）+ `transfers[]`（每次換線，含步行 + 預估候車）+ `transfer_count` + 總旅行時間（直達 = 0 transfer 路徑）|
 
 ### 公車（5）
 

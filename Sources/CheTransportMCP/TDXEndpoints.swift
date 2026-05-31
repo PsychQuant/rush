@@ -64,6 +64,10 @@ enum TDXEndpoints {
     static func metroS2STravelTime(_ sys: RailSystem) -> String { "v2/Rail/Metro/S2STravelTime/\(sys.rawValue)" }
     static func metroFrequency(_ sys: RailSystem) -> String { "v2/Rail/Metro/Frequency/\(sys.rawValue)" }
     static func metroLine(_ sys: RailSystem) -> String { "v2/Rail/Metro/Line/\(sys.rawValue)" }
+    /// Inter-line transfer relations (interchange stations + walk time). #6 — the
+    /// routing graph's transfer edges. Single-line systems return HTTP 400 / empty;
+    /// callers treat that as "no transfer edges", not an error.
+    static func metroLineTransfer(_ sys: RailSystem) -> String { "v2/Rail/Metro/LineTransfer/\(sys.rawValue)" }
 
     // MARK: - Air
 
@@ -217,6 +221,8 @@ extension TDXEndpoints {
             path: metroFrequency(.TRTC), decode: arrayDecoder(MetroFrequency.self)))
         cases.append(ContractCase(key: "metro.TRTC.line", mode: "metro",
             path: metroLine(.TRTC), decode: arrayDecoder(MetroLine.self)))
+        cases.append(ContractCase(key: "metro.TRTC.lineTransfer", mode: "metro",
+            path: metroLineTransfer(.TRTC), decode: arrayDecoder(MetroLineTransfer.self)))
 
         // Air
         cases.append(ContractCase(key: "air.airport", mode: "air",

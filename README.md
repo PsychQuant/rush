@@ -37,7 +37,7 @@ Register a free TDX account first at <https://tdx.transportdata.tw/register>.
 | `rail_find_trains` | Find trains by O/D + date (TRA / THSR) |
 | `rail_status_train` | Live train status (delay, position) |
 | `rail_status_station` | Live station board |
-| `metro_find_route` | Direct metro O/D routing — connecting line + station-to-station travel time + current headway (direct only; transfers tracked in #6) |
+| `metro_find_route` | Metro O/D routing incl. cross-line transfers — shortest path over the station network as `legs[]` (per line ridden) + `transfers[]` (per line change, with walk + estimated wait) + `transfer_count` + total travel time (direct = 0-transfer path) |
 
 ### Bus (5)
 

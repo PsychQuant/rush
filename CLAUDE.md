@@ -96,7 +96,7 @@ CheTransportMCP --setup
 - `rail_status_train(train_no, system)` — 特定列車即時誤點
 - `rail_status_station(station_id, system)` — 站到站板（即時）
   - Note: `window_min` 參數在 schema 中接受（forward-compatibility），但目前 **未生效** — TDX `StationLiveBoard` endpoint 自帶預設視窗。Client-side 視窗過濾預計 v0.3 加入。
-- `metro_find_route(from, to, system)` — 捷運直達 O/D：回連接線 + 站到站旅行時間 + 當下時段班距（僅直達；轉乘見 #6）
+- `metro_find_route(from, to, system)` — 捷運 O/D 路線（含跨線轉乘）：建站網圖跑最短路徑，回 routes[]，每條含 legs（每段線+時間+班距）+ transfers（換乘站+步行+估計等車）+ transfer_count + 總時間。直達 = 0 transfer。
 
 ### Bus (5) — city 必填
 - `bus_search_routes(query, city)` — 路線模糊搜尋

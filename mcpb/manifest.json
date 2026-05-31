@@ -59,7 +59,7 @@
     },
     {
       "name": "metro_find_route",
-      "description": "Direct (single-line) metro O/D route: connecting line, station-to-station travel time, current headway"
+      "description": "Metro O/D routing: shortest path with cross-line transfers (legs + transfers); direct single-line routes are zero-transfer, with station-to-station travel time and current headway"
     },
     {
       "name": "bus_search_routes",

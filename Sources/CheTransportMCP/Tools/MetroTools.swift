@@ -2,18 +2,20 @@
 import Foundation
 import MCP
 
-/// `metro_find_route` — direct (single-line) O/D routing for the six metro
-/// systems. Metros run on headways, not fixed timetables, so the natural answer
-/// to "A → B" is *which line connects them, how long it takes, and how often it
-/// runs* — not "the 14:32 train". Transfer routing (crossing lines) is out of
-/// scope here and tracked separately (PsychQuant/che-transport-mcp#6).
+/// `metro_find_route` — O/D routing within one metro system, covering both direct
+/// (single-line) and transfer (cross-line) journeys. Metros run on headways, not
+/// fixed timetables, so the answer is *which lines to ride, where to change, how
+/// long it takes, and how often trains run* — not "the 14:32 train".
+///
+/// The network is modelled as a graph (see `MetroGraph`) and the shortest path is
+/// returned; a direct route is simply a zero-transfer path. Cross-modal transfers
+/// (bus / rail) and live train matching are out of scope.
 enum MetroTools {
 
     /// Metro / light-rail operator codes (the RailSystem cases that aren't TRA/THSR).
     static let metroSystems: [RailSystem] = [.TRTC, .TYMC, .KRTC, .TMRT, .NTDLRT, .KLRT]
 
-    /// Sentinel emitted for travel-time / headway when the system returns no
-    /// data for the route (sparse light-rail). Empty data is not an error.
+    /// Sentinel for headway when the system serves no frequency data for a line.
     static let missingValue = -1
 
     // MARK: - Tool definition
@@ -22,17 +24,17 @@ enum MetroTools {
         [
             Tool(
                 name: "metro_find_route",
-                description: "查捷運直達 O/D：給起站、迄站、捷運系統，回傳連接兩站的直達線（線名/顏色）、站到站旅行時間（分）、與當下時段班距（分）。捷運按班距營運，故不回傳「某班車幾點」。無直達線回空 routes + 轉乘提示（轉乘規劃尚未支援）。",
+                description: "查捷運 O/D 路線（含跨線轉乘）：給起站、迄站、捷運系統，建站網圖跑最短路徑，回傳一或多條候選路徑。每條路徑含 legs（每段搭乘一條線：線名/顏色 + 該段旅行時間 + 班距）、transfers（每個換乘站：步行時間 walk_min + 估計等車 wait_min）、transfer_count、總 travel_time_min。直達 = 1 leg / 0 transfer。捷運按班距營運，故不回傳「某班車幾點」。兩站不連通回空 routes + note。",
                 inputSchema: .object([
                     "type": .string("object"),
                     "properties": .object([
                         "from": .object([
                             "type": .string("string"),
-                            "description": .string("起站 ID（用 rail_search_stations 查詢，例：板南線台北車站）")
+                            "description": .string("起站 ID（用 rail_search_stations 查詢，例：板南線台北車站 BL12）")
                         ]),
                         "to": .object([
                             "type": .string("string"),
-                            "description": .string("迄站 ID（用 rail_search_stations 查詢）")
+                            "description": .string("迄站 ID（用 rail_search_stations 查詢，例：淡水信義線淡水 R28）")
                         ]),
                         "system": .object([
                             "type": .string("string"),
@@ -96,36 +98,37 @@ enum MetroTools {
             throw TDXError.decoding("metro_find_route 僅支援捷運系統（TRTC/TYMC/KRTC/TMRT/NTDLRT/KLRT）；台鐵/高鐵請改用 rail_find_trains")
         }
 
-        // Gate: StationOfRoute first. If no single route covers both stations in
-        // the travel direction, return empty + transfer hint WITHOUT the other
-        // three (static) fetches — empty is not an error.
+        // Build the graph from the full station network. All five datasets are
+        // static (24h cached); the current headway band is selected client-side.
         let sorData = try await client.fetch(path: TDXEndpoints.metroStationOfRoute(sys), cacheTTL: 86400, cache: cache)
-        let stationOfRoute = (try? JSONDecoder().decode([MetroStationOfRoute].self, from: sorData)) ?? []
-
-        guard hasDirectRoute(from: from, to: to, in: stationOfRoute) else {
-            return resultJSON([
-                "from": from, "to": to, "system": sys.rawValue,
-                "routes": [],
-                "note": "找不到直達路線（兩站不在同一條線上），可能需要轉乘。轉乘路線規劃尚未支援（規劃中：PsychQuant/che-transport-mcp#6）。"
-            ])
-        }
-
-        // Enrich: travel times, headways, line names. All three are static daily
-        // datasets (current headway band is selected client-side from `Date()`),
-        // so 24h cache is correct. Sequential so cold-cache ordering is stable.
         let s2sData = try await client.fetch(path: TDXEndpoints.metroS2STravelTime(sys), cacheTTL: 86400, cache: cache)
         let freqData = try await client.fetch(path: TDXEndpoints.metroFrequency(sys), cacheTTL: 86400, cache: cache)
         let lineData = try await client.fetch(path: TDXEndpoints.metroLine(sys), cacheTTL: 86400, cache: cache)
+        // LineTransfer: single-line systems return HTTP 400 (fetch throws) or an
+        // empty array — tolerate both as "no transfer edges", not an error.
+        var lineTransfer: [MetroLineTransfer] = []
+        if let ltData = try? await client.fetch(path: TDXEndpoints.metroLineTransfer(sys), cacheTTL: 86400, cache: cache) {
+            lineTransfer = (try? JSONDecoder().decode([MetroLineTransfer].self, from: ltData)) ?? []
+        }
 
+        let stationOfRoute = (try? JSONDecoder().decode([MetroStationOfRoute].self, from: sorData)) ?? []
         let s2s = (try? JSONDecoder().decode([MetroS2STravelTime].self, from: s2sData)) ?? []
         let frequency = (try? JSONDecoder().decode([MetroFrequency].self, from: freqData)) ?? []
         let line = (try? JSONDecoder().decode([MetroLine].self, from: lineData)) ?? []
 
-        let routes = assembleDirectRoutes(
-            from: from, to: to,
-            stationOfRoute: stationOfRoute, s2s: s2s, frequency: frequency, line: line,
-            now: Date())
+        let headwayRange = headwayByLine(frequency: frequency, now: Date())
+        let graph = MetroGraph(
+            stationOfRoute: stationOfRoute, s2s: s2s, lineTransfer: lineTransfer,
+            headwayByLine: headwayRange.mapValues { $0.0 })
+        let lineMeta = Dictionary(line.compactMap { l in l.lineID.map { ($0, l) } }, uniquingKeysWith: { a, _ in a })
 
+        let routes = candidateRoutes(graph: graph, lineMeta: lineMeta, headwayRange: headwayRange, from: from, to: to)
+        if routes.isEmpty {
+            return resultJSON([
+                "from": from, "to": to, "system": sys.rawValue, "routes": [],
+                "note": "在此捷運系統內找不到連通 \(from) 與 \(to) 的路徑（站 ID 可能有誤，或屬不同系統）。"
+            ])
+        }
         return resultJSON(["from": from, "to": to, "system": sys.rawValue, "routes": routes])
     }
 
@@ -136,125 +139,118 @@ enum MetroTools {
     }
 }
 
-// MARK: - Pure routing core (testable without a server)
+// MARK: - Route assembly + candidate selection (pure, testable)
 
 extension MetroTools {
 
-    /// True if any route's station sequence contains both stations with the
-    /// origin appearing before the destination (i.e. a direct ride in that
-    /// travel direction exists).
-    static func hasDirectRoute(from: String, to: String, in routes: [MetroStationOfRoute]) -> Bool {
-        routes.contains { route in
-            guard let f = index(of: from, in: route), let t = index(of: to, in: route) else { return false }
-            return f < t
-        }
-    }
-
-    /// Build the direct-route result list (one entry per matching route/direction),
-    /// sorted by travel time ascending (sentinel/unknown times sort last).
-    static func assembleDirectRoutes(
-        from: String, to: String,
-        stationOfRoute: [MetroStationOfRoute],
-        s2s: [MetroS2STravelTime],
-        frequency: [MetroFrequency],
-        line: [MetroLine],
-        now: Date
+    /// Build the candidate route list: the shortest-by-time path plus the
+    /// fewest-transfers path (if different), deduped by station sequence, sorted
+    /// by total time, capped at three. Empty when the two stations are not connected.
+    static func candidateRoutes(
+        graph: MetroGraph, lineMeta: [String: MetroLine], headwayRange: [String: (Int, Int)],
+        from: String, to: String
     ) -> [[String: Any]] {
-        var out: [[String: Any]] = []
+        var paths: [MetroGraph.Path] = []
+        if let byTime = graph.shortestPathByTime(from: from, to: to) { paths.append(byTime) }
+        if let byXfer = graph.shortestPathByTransfers(from: from, to: to) { paths.append(byXfer) }
 
-        for route in stationOfRoute {
-            guard let fIdx = index(of: from, in: route),
-                  let tIdx = index(of: to, in: route),
-                  fIdx < tIdx else { continue }
+        var seen = Set<String>()
+        let unique = paths.filter { seen.insert($0.stations.joined(separator: ">")).inserted }
+        let routes = unique.map { assemblePath($0, lineMeta: lineMeta, headwayRange: headwayRange, graph: graph) }
+        return Array(routes.sorted {
+            ($0["travel_time_min"] as? Int ?? .max) < ($1["travel_time_min"] as? Int ?? .max)
+        }.prefix(3))
+    }
 
-            let stations = route.stations
-            let travelMin = travelTimeMinutes(route: route, fromIdx: fIdx, toIdx: tIdx, s2s: s2s)
-            let (hMin, hMax) = headway(routeID: route.routeID, frequency: frequency, now: now)
-            let lineMeta = line.first { $0.lineID == route.lineID }
+    /// Turn a graph path into the output route dict: legs (one per line ridden) +
+    /// transfers (one per line change) + transfer_count + total travel_time_min.
+    static func assemblePath(
+        _ path: MetroGraph.Path, lineMeta: [String: MetroLine],
+        headwayRange: [String: (Int, Int)], graph: MetroGraph
+    ) -> [String: Any] {
+        let stations = path.stations
+        var legs: [[String: Any]] = []
+        var transfers: [[String: Any]] = []
+        var legLine: String?
+        var legFromIdx: Int?
+        var legMinutes = 0.0
 
-            out.append([
-                "line_id": route.lineID ?? "",
-                "line_name": lineMeta?.lineName?.zhTw ?? route.lineName?.zhTw ?? (route.lineID ?? ""),
-                "line_color": lineMeta?.lineColor ?? "",
-                "route_id": route.routeID ?? "",
-                "route_name": route.routeName?.zhTw ?? "",
-                "direction": route.direction ?? missingValue,
-                "travel_time_min": travelMin,
-                "headway_min": hMin,
-                "headway_max_min": hMax,
-                "stations_count": tIdx - fIdx + 1,
-                "from_name": stations[fIdx].stationName.zhTw ?? "",
-                "to_name": stations[tIdx].stationName.zhTw ?? ""
+        func closeLeg(endIdx: Int) {
+            guard let line = legLine, let fi = legFromIdx else { return }
+            let (hmn, hmx) = headwayRange[line] ?? (missingValue, missingValue)
+            let meta = lineMeta[line]
+            legs.append([
+                "line_id": line,
+                "line_name": meta?.lineName?.zhTw ?? line,
+                "line_color": meta?.lineColor ?? "",
+                "from_station_id": stations[fi],
+                "from_name": graph.stationName(stations[fi]) ?? "",
+                "to_station_id": stations[endIdx],
+                "to_name": graph.stationName(stations[endIdx]) ?? "",
+                "travel_time_min": Int(legMinutes.rounded()),
+                "headway_min": hmn,
+                "headway_max_min": hmx
             ])
+            legLine = nil; legFromIdx = nil; legMinutes = 0
         }
 
-        // Ascending travel time; sentinel (-1, unknown) sinks to the bottom.
-        return out.sorted { a, b in
-            let ta = a["travel_time_min"] as? Int ?? missingValue
-            let tb = b["travel_time_min"] as? Int ?? missingValue
-            return rank(ta) < rank(tb)
+        for (i, edge) in path.edges.enumerated() {
+            switch edge.kind {
+            case .ride(let line):
+                if legLine == nil { legLine = line; legFromIdx = i }
+                else if legLine != line { closeLeg(endIdx: i); legLine = line; legFromIdx = i }
+                legMinutes += edge.minutes
+            case .transfer(let fromLine, let toLine, let walkMin, let waitMin):
+                closeLeg(endIdx: i)   // current leg ends at the interchange (from side)
+                transfers.append([
+                    "station_id": stations[i],
+                    "station_name": graph.stationName(stations[i]) ?? graph.stationName(stations[i + 1]) ?? "",
+                    "from_line": fromLine,
+                    "to_line": toLine,
+                    "walk_min": walkMin,
+                    "wait_min": waitMin
+                ])
+            }
         }
+        closeLeg(endIdx: stations.count - 1)
+
+        return [
+            "transfer_count": path.transferCount,
+            "travel_time_min": Int(path.totalMinutes.rounded()),
+            "legs": legs,
+            "transfers": transfers
+        ]
+    }
+}
+
+// MARK: - Headway band selection (per line, current Asia/Taipei period)
+
+extension MetroTools {
+
+    /// Current-period (min, max) headway for every line that has frequency data.
+    /// Used both for the graph's transfer-wait estimate and for per-leg display.
+    static func headwayByLine(frequency: [MetroFrequency], now: Date) -> [String: (Int, Int)] {
+        var out: [String: (Int, Int)] = [:]
+        for lineID in Set(frequency.compactMap { $0.lineID }) {
+            let band = currentHeadwayBand(frequency.filter { $0.lineID == lineID }, now: now)
+            if band.0 != missingValue { out[lineID] = band }
+        }
+        return out
     }
 
-    private static func rank(_ t: Int) -> Int { t < 0 ? Int.max : t }
-
-    private static func index(of stationID: String, in route: MetroStationOfRoute) -> Int? {
-        route.stations.firstIndex { $0.stationID == stationID }
-    }
-
-    /// Sum segment run-times between two station indices, plus dwell at the
-    /// intermediate stations (the destination's dwell is excluded — you don't
-    /// wait once you've arrived). Returns minutes, or `missingValue` if the
-    /// system provides no matching travel-time data.
-    static func travelTimeMinutes(route: MetroStationOfRoute, fromIdx: Int, toIdx: Int, s2s: [MetroS2STravelTime]) -> Int {
-        // TDX stores S2S segments in a single direction only (e.g. 板南線 stores the
-        // descending BL23→…→BL01 order — the forward BL12→BL13 pair exists in zero
-        // elements). Adjacent-station run-time is direction-symmetric, so register
-        // both orders and look up either. Station-pair IDs are line-prefixed
-        // (e.g. BL12,BL13) → globally unique, so drawing from every element is
-        // collision-free even across lines.
-        let segments = s2s.flatMap { $0.travelTimes }
-        guard !segments.isEmpty else { return missingValue }
-        var byPair: [Pair: MetroTravelTime] = [:]
-        for seg in segments {
-            let fwd = Pair(seg.fromStationID, seg.toStationID)
-            let rev = Pair(seg.toStationID, seg.fromStationID)
-            if byPair[fwd] == nil { byPair[fwd] = seg }
-            if byPair[rev] == nil { byPair[rev] = seg }
-        }
-
-        var totalSec = 0
-        var matched = 0
-        let stations = route.stations
-        for i in fromIdx..<toIdx {
-            guard let seg = byPair[Pair(stations[i].stationID, stations[i + 1].stationID)] else { continue }
-            matched += 1
-            totalSec += seg.runTime
-            // Dwell counts at every intermediate stop, i.e. not the final segment.
-            if i < toIdx - 1 { totalSec += seg.stopTime ?? 0 }
-        }
-        guard matched > 0 else { return missingValue }
-        return Int((Double(totalSec) / 60.0).rounded())
-    }
-
-    /// Pick the headway band for the queried weekday + time-of-day. Returns
-    /// `(missingValue, missingValue)` when the system has no headway data for the
-    /// route. National-holiday detection is out of scope for v1 — weekday match only.
-    static func headway(routeID: String?, frequency: [MetroFrequency], now: Date) -> (Int, Int) {
-        let forRoute = frequency.filter { $0.routeID == routeID }
-        guard !forRoute.isEmpty else { return (missingValue, missingValue) }
-
+    /// Pick the headway band matching the queried weekday + time-of-day from a
+    /// line's frequency entries. National-holiday detection is out of scope —
+    /// weekday match only.
+    static func currentHeadwayBand(_ freqs: [MetroFrequency], now: Date) -> (Int, Int) {
+        guard !freqs.isEmpty else { return (missingValue, missingValue) }
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = TimeZone(identifier: "Asia/Taipei")!
-        let weekday = cal.component(.weekday, from: now)              // 1=Sun … 7=Sat
+        let weekday = cal.component(.weekday, from: now)
         let nowMin = cal.component(.hour, from: now) * 60 + cal.component(.minute, from: now)
 
-        let freq = forRoute.first { matchesServiceDay($0.serviceDay, weekday: weekday) } ?? forRoute.first
-        guard let f = freq, !f.headways.isEmpty else { return (missingValue, missingValue) }
-
-        // Prefer the band covering the current time; otherwise fall back to the
-        // first band (better an approximate headway than nothing — #5 open question).
-        let band = f.headways.first { bandContains($0, minute: nowMin) } ?? f.headways.first
+        let f = freqs.first { matchesServiceDay($0.serviceDay, weekday: weekday) } ?? freqs.first
+        guard let freq = f, !freq.headways.isEmpty else { return (missingValue, missingValue) }
+        let band = freq.headways.first { bandContains($0, minute: nowMin) } ?? freq.headways.first
         guard let b = band else { return (missingValue, missingValue) }
         return (b.minHeadwayMins, b.maxHeadwayMins)
     }
@@ -285,7 +281,4 @@ extension MetroTools {
         guard parts.count == 2, let h = Int(parts[0]), let m = Int(parts[1]) else { return nil }
         return h * 60 + m
     }
-
-    /// Hashable station-pair key for O(1) segment lookup.
-    private struct Pair: Hashable { let a: String; let b: String; init(_ a: String, _ b: String) { self.a = a; self.b = b } }
 }

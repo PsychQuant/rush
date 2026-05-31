@@ -32,12 +32,14 @@ final class TDXEndpointsTests: XCTestCase {
         XCTAssertEqual(TDXEndpoints.metroS2STravelTime(.TRTC), "v2/Rail/Metro/S2STravelTime/TRTC")
         XCTAssertEqual(TDXEndpoints.metroFrequency(.KRTC), "v2/Rail/Metro/Frequency/KRTC")
         XCTAssertEqual(TDXEndpoints.metroLine(.TRTC), "v2/Rail/Metro/Line/TRTC")
+        // #6: line-transfer endpoint, same dataset-before-operator convention.
+        XCTAssertEqual(TDXEndpoints.metroLineTransfer(.TRTC), "v2/Rail/Metro/LineTransfer/TRTC")
     }
 
     func testMetroRoutingContractCasesAreEnumerated() {
         let keys = Set(TDXEndpoints.allContractCases.map(\.key))
         for expected in ["metro.TRTC.stationOfRoute", "metro.TRTC.s2sTravelTime",
-                         "metro.TRTC.frequency", "metro.TRTC.line"] {
+                         "metro.TRTC.frequency", "metro.TRTC.line", "metro.TRTC.lineTransfer"] {
             XCTAssertTrue(keys.contains(expected), "missing metro contract case \(expected)")
         }
     }
@@ -64,8 +66,9 @@ final class TDXEndpointsTests: XCTestCase {
         // THSR has no live board in TDX), air 2, bus 5, bike 2, traffic 3,
         // parking 2 = 26. Plus #5 metro O/D routing 4 (StationOfRoute,
         // S2STravelTime, Frequency, Line — one representative TRTC case each) = 30.
+        // Plus #6 metro LineTransfer 1 (representative TRTC) = 31.
         // (Maritime removed — no live API on the TDX platform.)
-        XCTAssertEqual(TDXEndpoints.allContractCases.count, 30)
+        XCTAssertEqual(TDXEndpoints.allContractCases.count, 31)
     }
 
     func testContractCaseKeysAreUnique() {

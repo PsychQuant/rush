@@ -1,0 +1,32 @@
+[
+  {
+    "FromLineNo": "BL",
+    "FromLineID": "BL",
+    "FromLineName": { "Zh_tw": "板南線", "En": "Bannan Line" },
+    "FromStationID": "BL12",
+    "FromStationName": { "Zh_tw": "台北車站", "En": "Taipei Main Station" },
+    "ToLineNo": "R",
+    "ToLineID": "R",
+    "ToLineName": { "Zh_tw": "淡水信義線", "En": "Tamsui-Xinyi Line" },
+    "ToStationID": "R10",
+    "ToStationName": { "Zh_tw": "台北車站", "En": "Taipei Main Station" },
+    "IsOnSiteTransfer": 1,
+    "TransferTime": 4,
+    "TransferDescription": ""
+  },
+  {
+    "FromLineNo": "BL",
+    "FromLineID": "BL",
+    "FromLineName": { "Zh_tw": "板南線", "En": "Bannan Line" },
+    "FromStationID": "BL07",
+    "FromStationName": { "Zh_tw": "板橋", "En": "Banqiao" },
+    "ToLineNo": "Y",
+    "ToLineID": "Y",
+    "ToLineName": { "Zh_tw": "環狀線", "En": "Circular Line" },
+    "ToStationID": "Y16",
+    "ToStationName": { "Zh_tw": "板橋", "En": "Banqiao" },
+    "IsOnSiteTransfer": 0,
+    "TransferTime": 11,
+    "TransferDescription": ""
+  }
+]
