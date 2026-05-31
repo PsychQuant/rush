@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-31
+
+### Added
+- `metro_find_route(from, to, system)` — direct (single-line) metro O/D routing across the 6 metro systems (TRTC/TYMC/KRTC/TMRT/NTDLRT/KLRT). Returns the connecting line (name + colour), station-to-station travel time, and current-period service headway — metros run on headways, not fixed timetables, so it does not return a specific departure time. No direct line → empty `routes` + transfer hint (transfer routing tracked in #6). Tool count: 21 → 22. (#5)
+- 4 metro routing endpoints (`StationOfRoute` / `S2STravelTime` / `Frequency` / `Line`) added to the `TDXEndpoints` registry + live contract enumeration (contract cases 26 → 30). Production resolves all paths through the registry; no inline metro path literals.
+
+### Notes
+- Travel-time accumulation is direction-agnostic: TDX `S2STravelTime` stores segments in a single direction only (e.g. 板南線 stores the descending order), and adjacent-station run-time is symmetric, so both orders are matched. Headway is selected by Asia/Taipei weekday + time-of-day band (national-holiday detection is out of scope for v1).
+
 ## [0.3.0] — 2026-05-30
 
 ### Added
