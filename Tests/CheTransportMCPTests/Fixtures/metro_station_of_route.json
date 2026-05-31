@@ -1,0 +1,30 @@
+[
+  {
+    "LineID": "BL",
+    "LineNo": "BL",
+    "RouteID": "BL-1",
+    "Direction": 0,
+    "LineName": null,
+    "RouteName": { "Zh_tw": "頂埔－南港展覽館", "En": "Dingpu - Nangang Exhibition Center" },
+    "Stations": [
+      { "Sequence": 1, "StationID": "BL01", "StationName": { "Zh_tw": "板橋", "En": "Banqiao" }, "CumulativeDistance": 0 },
+      { "Sequence": 2, "StationID": "BL02", "StationName": { "Zh_tw": "西門", "En": "Ximen" }, "CumulativeDistance": 1.5 },
+      { "Sequence": 3, "StationID": "BL03", "StationName": { "Zh_tw": "台北車站", "En": "Taipei Main Station" }, "CumulativeDistance": 3.0 },
+      { "Sequence": 4, "StationID": "BL04", "StationName": { "Zh_tw": "南港", "En": "Nangang" }, "CumulativeDistance": 6.0 }
+    ]
+  },
+  {
+    "LineID": "BL",
+    "LineNo": "BL",
+    "RouteID": "BL-2",
+    "Direction": 1,
+    "LineName": null,
+    "RouteName": { "Zh_tw": "南港展覽館－頂埔", "En": "Nangang Exhibition Center - Dingpu" },
+    "Stations": [
+      { "Sequence": 1, "StationID": "BL04", "StationName": { "Zh_tw": "南港", "En": "Nangang" }, "CumulativeDistance": 0 },
+      { "Sequence": 2, "StationID": "BL03", "StationName": { "Zh_tw": "台北車站", "En": "Taipei Main Station" }, "CumulativeDistance": 3.0 },
+      { "Sequence": 3, "StationID": "BL02", "StationName": { "Zh_tw": "西門", "En": "Ximen" }, "CumulativeDistance": 4.5 },
+      { "Sequence": 4, "StationID": "BL01", "StationName": { "Zh_tw": "板橋", "En": "Banqiao" }, "CumulativeDistance": 6.0 }
+    ]
+  }
+]

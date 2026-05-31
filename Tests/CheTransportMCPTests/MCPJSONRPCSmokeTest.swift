@@ -8,9 +8,9 @@ import XCTest
 /// tools/list), then verifies:
 ///   1. The server identifies itself as "che-transport-mcp" with the
 ///      expected version.
-///   2. tools/list returns **exactly 21** tools.
+///   2. tools/list returns **exactly 22** tools.
 ///   3. Per-prefix counts match the design spec
-///      (rail=5, bus=5, bike=3, air=3, traffic=3, parking=2).
+///      (rail=5, metro=1, bus=5, bike=3, air=3, traffic=3, parking=2).
 ///   4. Every tool entry has a non-empty `name`, `description`, and
 ///      `inputSchema` field.
 ///
@@ -116,13 +116,14 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
         guard let tools = toolsResult["tools"] as? [[String: Any]] else {
             return XCTFail("tools/list result missing `tools` array. Result was: \(toolsResult)")
         }
-        XCTAssertEqual(tools.count, 21,
-                       "expected 21 tools, got \(tools.count). Names: \(tools.compactMap { $0["name"] as? String })")
+        XCTAssertEqual(tools.count, 22,
+                       "expected 22 tools, got \(tools.count). Names: \(tools.compactMap { $0["name"] as? String })")
 
         // 3. Per-prefix counts match the design spec
         let names = tools.compactMap { $0["name"] as? String }
         let expectedPrefixCounts: [(String, Int)] = [
             ("rail_",     5),
+            ("metro_",    1),
             ("bus_",      5),
             ("bike_",     3),
             ("air_",      3),

@@ -33,9 +33,9 @@ This file is read by LLM agents (Claude Code, Codex, etc.) that use this MCP ser
 
 ## What this MCP does
 
-Provides 21 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
+Provides 22 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
 
-Current build covers **all 21 tools across 6 modes**. Per-module tool catalogue below.
+Current build covers **all 22 tools across 6 modes**. Per-module tool catalogue below.
 
 > **Maritime (航運/渡輪) is not covered.** TDX no longer serves it on the unified API (every `v2`/`v3` `Maritime`/`Ship` path 404s) and the legacy PTX `Ship` API is decommissioned (403 regardless of auth). The contract suite confirmed there is no callable maritime endpoint, so those tools were removed rather than ship broken. See PsychQuant/che-transport-mcp#4.
 
@@ -87,15 +87,16 @@ CheTransportMCP --setup
 
 `--setup` prompts for TDX `client_id` / `client_secret`（register at <https://tdx.transportdata.tw/register>），writes them to the macOS keychain under service `che-transport-tdx`, and verifies with a live OAuth round-trip. The secret prompt uses `getpass` so it never echoes.
 
-## Tools (21 total across 6 modes)
+## Tools (22 total across 6 modes)
 
-### Rail (5)
+### Rail (6)
 - `rail_list_systems()` — 列出 8 個支援 system
 - `rail_search_stations(query, system?)` — 模糊搜尋站點 → station_id（未指定 system 會並行 fan-out）
 - `rail_find_trains(from, to, date, system)` — O/D 找班次（僅 TRA / THSR）
 - `rail_status_train(train_no, system)` — 特定列車即時誤點
 - `rail_status_station(station_id, system)` — 站到站板（即時）
   - Note: `window_min` 參數在 schema 中接受（forward-compatibility），但目前 **未生效** — TDX `StationLiveBoard` endpoint 自帶預設視窗。Client-side 視窗過濾預計 v0.3 加入。
+- `metro_find_route(from, to, system)` — 捷運直達 O/D：回連接線 + 站到站旅行時間 + 當下時段班距（僅直達；轉乘見 #6）
 
 ### Bus (5) — city 必填
 - `bus_search_routes(query, city)` — 路線模糊搜尋

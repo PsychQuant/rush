@@ -19,6 +19,7 @@ enum TransportServer {
         // delegate to the registry so adding a new mode doesn't require
         // changing wiring here.
         await RailTools.register(into: registry, client: client, cache: cache)
+        await MetroTools.register(into: registry, client: client, cache: cache)
         await BusTools.register(into: registry, client: client, cache: cache)
         await BikeTools.register(into: registry, client: client, cache: cache)
         await AirTools.register(into: registry, client: client, cache: cache)

@@ -1,0 +1,10 @@
+[
+  {
+    "LineNo": "BL",
+    "LineID": "BL",
+    "LineName": { "Zh_tw": "板南線", "En": "Bannan Line" },
+    "LineSectionName": {},
+    "LineColor": "#0a59ae",
+    "IsBranch": false
+  }
+]

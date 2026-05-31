@@ -55,6 +55,16 @@ enum TDXEndpoints {
         "v3/Rail/TRA/StationLiveBoard/Station/\(stationID)"
     }
 
+    // MARK: - Metro (O/D routing)
+
+    /// Metro O/D routing datasets. Same convention as the metro Station path —
+    /// dataset **before** the operator code (operator-last was 404, #4 finding).
+    /// `metro_find_route` resolves all four through these builders.
+    static func metroStationOfRoute(_ sys: RailSystem) -> String { "v2/Rail/Metro/StationOfRoute/\(sys.rawValue)" }
+    static func metroS2STravelTime(_ sys: RailSystem) -> String { "v2/Rail/Metro/S2STravelTime/\(sys.rawValue)" }
+    static func metroFrequency(_ sys: RailSystem) -> String { "v2/Rail/Metro/Frequency/\(sys.rawValue)" }
+    static func metroLine(_ sys: RailSystem) -> String { "v2/Rail/Metro/Line/\(sys.rawValue)" }
+
     // MARK: - Air
 
     static func airAirport() -> String { "v2/Air/Airport" }
@@ -196,6 +206,17 @@ extension TDXEndpoints {
         cases.append(ContractCase(
             key: "rail.TRA.stationLiveBoard", mode: "rail",
             path: railStationLiveBoard(stationID: "1000"), decode: decodeAnyJSON))
+
+        // Metro O/D routing (representative operator TRTC). Bare arrays (live
+        // probe), so strict array decode — schema drift fails the contract.
+        cases.append(ContractCase(key: "metro.TRTC.stationOfRoute", mode: "metro",
+            path: metroStationOfRoute(.TRTC), decode: arrayDecoder(MetroStationOfRoute.self)))
+        cases.append(ContractCase(key: "metro.TRTC.s2sTravelTime", mode: "metro",
+            path: metroS2STravelTime(.TRTC), decode: arrayDecoder(MetroS2STravelTime.self)))
+        cases.append(ContractCase(key: "metro.TRTC.frequency", mode: "metro",
+            path: metroFrequency(.TRTC), decode: arrayDecoder(MetroFrequency.self)))
+        cases.append(ContractCase(key: "metro.TRTC.line", mode: "metro",
+            path: metroLine(.TRTC), decode: arrayDecoder(MetroLine.self)))
 
         // Air
         cases.append(ContractCase(key: "air.airport", mode: "air",

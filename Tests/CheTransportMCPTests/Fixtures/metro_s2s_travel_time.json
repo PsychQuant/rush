@@ -1,0 +1,13 @@
+[
+  {
+    "LineID": "BL",
+    "LineNo": "BL",
+    "RouteID": "BL-1",
+    "TrainType": 0,
+    "TravelTimes": [
+      { "Sequence": 1, "FromStationID": "BL01", "FromStationName": { "Zh_tw": "板橋", "En": "Banqiao" }, "ToStationID": "BL02", "ToStationName": { "Zh_tw": "西門", "En": "Ximen" }, "RunTime": 120, "StopTime": 30 },
+      { "Sequence": 2, "FromStationID": "BL02", "FromStationName": { "Zh_tw": "西門", "En": "Ximen" }, "ToStationID": "BL03", "ToStationName": { "Zh_tw": "台北車站", "En": "Taipei Main Station" }, "RunTime": 90, "StopTime": 25 },
+      { "Sequence": 3, "FromStationID": "BL03", "FromStationName": { "Zh_tw": "台北車站", "En": "Taipei Main Station" }, "ToStationID": "BL04", "ToStationName": { "Zh_tw": "南港", "En": "Nangang" }, "RunTime": 100, "StopTime": 0 }
+    ]
+  }
+]

@@ -23,6 +23,25 @@ final class TDXEndpointsTests: XCTestCase {
         XCTAssertEqual(TDXEndpoints.railStation(.KRTC), "v2/Rail/Metro/Station/KRTC")
     }
 
+    // MARK: - #5: metro O/D routing paths (dataset before operator)
+
+    func testMetroRoutingPathsPutDatasetBeforeOperator() {
+        // Live-probed 200 on TRTC; same operator-last-was-404 convention as the
+        // metro Station endpoint, so dataset precedes the operator code.
+        XCTAssertEqual(TDXEndpoints.metroStationOfRoute(.TRTC), "v2/Rail/Metro/StationOfRoute/TRTC")
+        XCTAssertEqual(TDXEndpoints.metroS2STravelTime(.TRTC), "v2/Rail/Metro/S2STravelTime/TRTC")
+        XCTAssertEqual(TDXEndpoints.metroFrequency(.KRTC), "v2/Rail/Metro/Frequency/KRTC")
+        XCTAssertEqual(TDXEndpoints.metroLine(.TRTC), "v2/Rail/Metro/Line/TRTC")
+    }
+
+    func testMetroRoutingContractCasesAreEnumerated() {
+        let keys = Set(TDXEndpoints.allContractCases.map(\.key))
+        for expected in ["metro.TRTC.stationOfRoute", "metro.TRTC.s2sTravelTime",
+                         "metro.TRTC.frequency", "metro.TRTC.line"] {
+            XCTAssertTrue(keys.contains(expected), "missing metro contract case \(expected)")
+        }
+    }
+
     func testTHSRTimetableUsesDailyTimetableDatasetOnV2() {
         // #4: THSR uses DailyTimetable (not TRA's DailyTrainTimetable) on v2.
         XCTAssertEqual(
@@ -43,8 +62,10 @@ final class TDXEndpointsTests: XCTestCase {
     func testContractCaseCountMatchesExpected() {
         // 6 modes: rail 12 (8 station + 2 timetable + TRA trainLive + TRA stationLive;
         // THSR has no live board in TDX), air 2, bus 5, bike 2, traffic 3,
-        // parking 2 = 26. (Maritime removed — no live API on the TDX platform.)
-        XCTAssertEqual(TDXEndpoints.allContractCases.count, 26)
+        // parking 2 = 26. Plus #5 metro O/D routing 4 (StationOfRoute,
+        // S2STravelTime, Frequency, Line — one representative TRTC case each) = 30.
+        // (Maritime removed — no live API on the TDX platform.)
+        XCTAssertEqual(TDXEndpoints.allContractCases.count, 30)
     }
 
     func testContractCaseKeysAreUnique() {
