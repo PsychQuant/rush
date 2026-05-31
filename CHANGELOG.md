@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-05-31
+
+### Added
+- `metro_find_route` now does **cross-line transfer** routing (#6), not just direct. The metro network is modelled as a graph (stations as nodes; same-line adjacency from `S2STravelTime`; transfer edges from a new `LineTransfer` dataset weighted by walk time + estimated boarding wait) and the shortest path is returned. A direct route is simply a zero-transfer path, so the same query also catches cases where a 環狀線 transfer beats a long direct ride.
+- New `metroLineTransfer` registry endpoint + `MetroLineTransfer` model + contract case (contract cases 30 → 31). Single-line systems (HTTP 400 / empty) degrade gracefully to no transfer edges.
+
+### Changed
+- **`metro_find_route` output shape** evolved from the v0.4.0 flat single-line shape to `routes[]`, each with `legs[]` (one leg per line ridden — line name/colour, per-leg travel time, headway), `transfers[]` (one per line change — interchange station, from/to line, `walk_min`, estimated `wait_min`), `transfer_count`, and total `travel_time_min`. Tool count unchanged (22 — extends the existing tool). The #5 direct short-circuit gate is replaced by always building the graph.
+
 ## [0.4.0] — 2026-05-31
 
 ### Added
