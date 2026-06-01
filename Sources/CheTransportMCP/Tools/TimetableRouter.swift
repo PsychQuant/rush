@@ -45,10 +45,15 @@ enum TimetableRouter {
         let arrMin: Int       // arrival at destination, minutes-of-day (live-adjusted)
     }
 
-    /// Parse "HH:mm" to minutes-of-day. Returns nil on malformed input.
+    /// Parse "HH:mm" to minutes-of-day. Returns nil on malformed or out-of-range
+    /// input. Bounding the components (h 0–23, m 0–59) before the multiply both
+    /// validates the time and prevents an integer-overflow trap on hostile input
+    /// (e.g. `depart_after` is a caller-supplied tool argument).
     static func minutesOfDay(_ hhmm: String) -> Int? {
         let parts = hhmm.split(separator: ":")
-        guard parts.count == 2, let h = Int(parts[0]), let m = Int(parts[1]) else { return nil }
+        guard parts.count == 2,
+              let h = Int(parts[0]), (0..<24).contains(h),
+              let m = Int(parts[1]), (0..<60).contains(m) else { return nil }
         return h * 60 + m
     }
 

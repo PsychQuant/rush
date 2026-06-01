@@ -41,4 +41,18 @@ final class TimetableRouterTests: XCTestCase {
         XCTAssertTrue(route.legs[0].live, "200 had a live entry (delay 0) → live")
         XCTAssertEqual(route.legs[0].delayMin, 0)
     }
+
+    // Security: depart_after is caller-supplied; an unbounded hour would overflow
+    // `h * 60` and trap (crash). Out-of-range / overflow input must return nil.
+    func testMinutesOfDayRejectsOverflowAndOutOfRange() {
+        XCTAssertNil(TimetableRouter.minutesOfDay("200000000000000000:00"), "overflow input must not trap")
+        XCTAssertNil(TimetableRouter.minutesOfDay("24:00"), "TRA times are 00:00–23:59")
+        XCTAssertNil(TimetableRouter.minutesOfDay("25:00"))
+        XCTAssertNil(TimetableRouter.minutesOfDay("08:60"))
+        XCTAssertNil(TimetableRouter.minutesOfDay("-1:00"))
+        XCTAssertNil(TimetableRouter.minutesOfDay("abc"))
+        XCTAssertEqual(TimetableRouter.minutesOfDay("08:30"), 510)
+        XCTAssertEqual(TimetableRouter.minutesOfDay("00:00"), 0)
+        XCTAssertEqual(TimetableRouter.minutesOfDay("23:59"), 1439)
+    }
 }

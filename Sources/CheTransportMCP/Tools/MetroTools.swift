@@ -275,10 +275,14 @@ extension MetroTools {
         return minute >= start && minute < end
     }
 
-    /// Parse "HH:mm" to minutes-of-day. "24:00" → 1440 (end of service day).
+    /// Parse "HH:mm" to minutes-of-day. "24:00" → 1440 (headway end-of-service-day).
+    /// Bounds the components (h 0–24, m 0–59) before the multiply: validates the
+    /// time AND prevents an integer-overflow trap on malformed data.
     static func minutesOfDay(_ hhmm: String) -> Int? {
         let parts = hhmm.split(separator: ":")
-        guard parts.count == 2, let h = Int(parts[0]), let m = Int(parts[1]) else { return nil }
+        guard parts.count == 2,
+              let h = Int(parts[0]), (0...24).contains(h),
+              let m = Int(parts[1]), (0..<60).contains(m) else { return nil }
         return h * 60 + m
     }
 }
