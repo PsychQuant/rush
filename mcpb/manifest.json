@@ -62,6 +62,10 @@
       "description": "TRA time-dependent O/D routing: real-timetable earliest arrival, live-adjusted for train delays (legs + arrival time + duration); TRA only"
     },
     {
+      "name": "transit_route",
+      "description": "Multi-modal TRA↔Taipei-Metro time-dependent earliest-arrival routing (Stage 2). TRA legs use the timetable + live delay (source: live); metro legs use expected-wait headway/2 (source: frequency). Cross-system transfers only at curated interchanges (台北車站/板橋/南港/松山). Returns legs + transfers + arrival_time + duration_min + transfer_count; ambiguous endpoint → matches; no route → empty routes + note."
+    },
+    {
       "name": "metro_find_route",
       "description": "Metro O/D routing: shortest path with cross-line transfers (legs + transfers); direct single-line routes are zero-transfer, with station-to-station travel time and current headway"
     },

@@ -25,6 +25,7 @@ enum TransportServer {
         await AirTools.register(into: registry, client: client, cache: cache)
         await TrafficTools.register(into: registry, client: client, cache: cache)
         await ParkingTools.register(into: registry, client: client, cache: cache)
+        await TransitTools.register(into: registry, client: client, cache: cache)
 
         await server.withMethodHandler(ListTools.self) { _ in
             ListTools.Result(tools: await registry.allTools())

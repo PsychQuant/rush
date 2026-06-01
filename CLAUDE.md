@@ -31,11 +31,27 @@ Changes can be parked（暫存）— temporarily moved out of `openspec/changes/
 
 This file is read by LLM agents (Claude Code, Codex, etc.) that use this MCP server. Follow these conventions to avoid common pitfalls.
 
+## North Star — 臺灣版的 NAVITIME
+
+這個 MCP 的目標是成為**臺灣版的 [NAVITIME](https://www.navitime.co.jp/)**：一個 MCP-native、time-dependent、live-aware 的大眾運輸路由引擎（OpenTripPlanner / RAPTOR-class），把台灣各運具的路由做深。
+
+**誠實的天花板**：路由準確度的上限是 **TDX 的資料形態，不是演算法**。NAVITIME 之所以準，靠的是資料（全業者班次時刻表 + 即時運行情報 + 實測站內轉乘步行時間），不是祕密演算法——演算法（RAPTOR/CSA/time-dependent search）是公開的，我們用的是同一家族。所以：
+
+- TDX 資料豐富處（TRA/THSR 有 per-train 時刻表 + `TrainLiveBoard` 即時誤點）→ 我們能做到 NAVITIME 等級的精確。
+- TDX 資料薄處（捷運/公車只給 headway 班距、**無 per-vehicle 發車 phase**）→ 我們用誠實的 expected-wait 模型（`E[wait] = headway/2`）並標 `source: frequency`，不假裝精確。
+- 要逼近 NAVITIME 的捷運準度 = **資料採集問題**（補 phase 時刻表），屬 Stage 3+，不是改演算法能解的。
+
+路由引擎分階段建（內部代號 (B) 北極星）：
+
+- **Stage 1**（已出貨 v0.6.0）：`rail_route` — TRA 時刻表 time-dependent 最早抵達 + 即時誤點調整。
+- **Stage 2**（進行中）：`transit_route` — TRA↔台北捷運多模式路由，scoped 到策劃式 interchange registry；捷運段 expected-wait。
+- **Stage 3**（未來）：統一多模式核心 + 公車 + 更完整 live feed。
+
 ## What this MCP does
 
-Provides 23 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
+Provides 24 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
 
-Current build covers **all 23 tools across 6 modes**. Per-module tool catalogue below.
+Current build covers **all 24 tools across 6 modes**. Per-module tool catalogue below.
 
 > **Maritime (航運/渡輪) is not covered.** TDX no longer serves it on the unified API (every `v2`/`v3` `Maritime`/`Ship` path 404s) and the legacy PTX `Ship` API is decommissioned (403 regardless of auth). The contract suite confirmed there is no callable maritime endpoint, so those tools were removed rather than ship broken. See PsychQuant/che-transport-mcp#4.
 
@@ -87,7 +103,7 @@ CheTransportMCP --setup
 
 `--setup` prompts for TDX `client_id` / `client_secret`（register at <https://tdx.transportdata.tw/register>），writes them to the macOS keychain under service `che-transport-tdx`, and verifies with a live OAuth round-trip. The secret prompt uses `getpass` so it never echoes.
 
-## Tools (23 total across 6 modes)
+## Tools (24 total across 6 modes)
 
 ### Rail (7)
 - `rail_list_systems()` — 列出 8 個支援 system
@@ -98,6 +114,9 @@ CheTransportMCP --setup
   - Note: `window_min` 參數在 schema 中接受（forward-compatibility），但目前 **未生效** — TDX `StationLiveBoard` endpoint 自帶預設視窗。Client-side 視窗過濾預計 v0.3 加入。
 - `metro_find_route(from, to, system)` — 捷運 O/D 路線（含跨線轉乘）：建站網圖跑最短路徑，回 routes[]，每條含 legs（每段線+時間+班距）+ transfers（換乘站+步行+估計等車）+ transfer_count + 總時間。直達 = 0 transfer。
 - `rail_route(from, to, depart_after?, system)` — TRA 時刻表 time-dependent 最早抵達路由：套用 TrainLiveBoard 即時誤點調整（誤點班次可能被較晚但實際更早到的車取代），回 legs（車次/起訖/開到時刻/誤點/source）+ arrival_time + duration_min。僅 TRA；與 rail_find_trains（列班次）不同。
+
+### Multi-modal (1) — Stage 2 of the (B) routing engine
+- `transit_route(from, to, depart_after?)` — TRA↔台北捷運（TRTC）多模式最早抵達路由。time-anchored 組合：TRA 段用時刻表 + 即時誤點（`source: live`），捷運段用班距期望等車 `E[wait]=headway/2`（`source: frequency`，TDX 捷運無 per-vehicle phase 故無 live）。跨系統轉乘僅限策劃的 interchange registry（台北車站/板橋/南港/松山）。回 legs（每段 mode + 起訖 + 時刻 + source）+ transfers（交會站 + walk_min）+ arrival_time + duration_min + transfer_count。站名多系統同名 → 回 `matches` 釐清；查無路徑 → `routes:[] + note`（empty ≠ error）。僅 TRA + TRTC；公車／其他捷運／THSR 不在此 stage。
 
 ### Bus (5) — city 必填
 - `bus_search_routes(query, city)` — 路線模糊搜尋

@@ -6,7 +6,7 @@ A Model Context Protocol server providing real-time Taiwan transport queries via
 
 ## Status
 
-**v0.2-dev** — 23 tools across 6 transport modes (Rail / Bus / Bike / Air / Traffic / Parking)
+**v0.2-dev** — 24 tools across 6 transport modes (Rail / Bus / Bike / Air / Traffic / Parking) incl. `transit_route` TRA↔Taipei-Metro multi-modal routing
 
 Roadmap:
 - v0.1: Rail ✅ (5 tools)
@@ -85,7 +85,7 @@ City is **required** for all Bus tools — 22 BusCity codes (`Taipei`, `NewTaipe
 
 ## Architecture
 
-- **Read-only**: all 23 tools are GET-only against TDX. No execution risk.
+- **Read-only**: all 24 tools are GET-only against TDX. No execution risk.
 - **Cache TTL tiers**: 24h static (stations / routes / lots / CCTV) · 1h timetables · 5-10 min news · 0s live (ETAs, positions, FIDS, parking availability).
 - **Rate limit**: TDX free tier is 50/min. 429 triggers a single 1s retry.
 - **Empty ≠ error**: empty result sets return normally; errors are system-level only.
