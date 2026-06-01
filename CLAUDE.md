@@ -44,7 +44,7 @@ This file is read by LLM agents (Claude Code, Codex, etc.) that use this MCP ser
 路由引擎分階段建（內部代號 (B) 北極星）：
 
 - **Stage 1**（已出貨 v0.6.0）：`rail_route` — TRA 時刻表 time-dependent 最早抵達 + 即時誤點調整。
-- **Stage 2**（進行中）：`transit_route` — TRA↔台北捷運多模式路由，scoped 到策劃式 interchange registry；捷運段 expected-wait。
+- **Stage 2**（已出貨 v0.7.0）：`transit_route` — TRA↔台北捷運多模式路由，scoped 到策劃式 interchange registry；捷運段 expected-wait。
 - **Stage 3**（進行中）：公車 + 更完整 live feed + 統一多模式核心。**3a（已實作）**：`bus_route` 市內公車直達路由（A2 即時上車預估 + 班表抵達／誠實從缺）。3b：bus↔rail 多模式 + 轉乘。3c：統一 RAPTOR 核心（緩議）。
 
 ## What this MCP does
