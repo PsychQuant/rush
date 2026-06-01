@@ -83,6 +83,7 @@ enum TDXEndpoints {
     static func busStopOfRoute(_ city: String) -> String { "v2/Bus/StopOfRoute/City/\(city)" }
     static func busEstimatedTimeOfArrival(_ city: String) -> String { "v2/Bus/EstimatedTimeOfArrival/City/\(city)" }
     static func busRealTimeNearStop(_ city: String, route: String) -> String { "v2/Bus/RealTimeNearStop/City/\(city)/\(route)" }
+    static func busSchedule(_ city: String) -> String { "v2/Bus/Schedule/City/\(city)" }
 
     // MARK: - Bike (city-scoped)
 
@@ -241,6 +242,8 @@ extension TDXEndpoints {
             path: busEstimatedTimeOfArrival(city), decode: arrayDecoder(BusArrival.self)))
         cases.append(ContractCase(key: "bus.realTimeNearStop", mode: "bus",
             path: busRealTimeNearStop(city, route: "299"), decode: arrayDecoder(BusLivePosition.self)))
+        cases.append(ContractCase(key: "bus.schedule", mode: "bus",
+            path: busSchedule(city), decode: arrayDecoder(BusSchedule.self)))
 
         // Bike (representative city)
         cases.append(ContractCase(key: "bike.station", mode: "bike",

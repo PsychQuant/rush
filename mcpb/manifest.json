@@ -90,6 +90,10 @@
       "description": "Live bus positions on a route"
     },
     {
+      "name": "bus_route",
+      "description": "Direct-route within-city bus routing (Stage 3a; no transfers). Returns direct routes serving both stops (origin before dest, same direction), each with a board estimate (A2 live ETA source:live / next timetabled departure source:scheduled / headway/2 source:frequency) and arrival time (timetable-backed source:scheduled, or null+note for frequency-only routes — never faked). Ambiguous stop name → matches; no direct route → empty routes + note (transfers not yet supported)."
+    },
+    {
       "name": "bike_search_stations",
       "description": "YouBike station name search; optional service-type filter"
     },

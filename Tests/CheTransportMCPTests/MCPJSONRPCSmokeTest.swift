@@ -8,7 +8,7 @@ import XCTest
 /// tools/list), then verifies:
 ///   1. The server identifies itself as "che-transport-mcp" with the
 ///      expected version.
-///   2. tools/list returns **exactly 24** tools.
+///   2. tools/list returns **exactly 25** tools.
 ///   3. Per-prefix counts match the design spec
 ///      (rail=6, metro=1, bus=5, bike=3, air=3, traffic=3, parking=2).
 ///   4. Every tool entry has a non-empty `name`, `description`, and
@@ -116,8 +116,8 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
         guard let tools = toolsResult["tools"] as? [[String: Any]] else {
             return XCTFail("tools/list result missing `tools` array. Result was: \(toolsResult)")
         }
-        XCTAssertEqual(tools.count, 24,
-                       "expected 24 tools, got \(tools.count). Names: \(tools.compactMap { $0["name"] as? String })")
+        XCTAssertEqual(tools.count, 25,
+                       "expected 25 tools, got \(tools.count). Names: \(tools.compactMap { $0["name"] as? String })")
 
         // 3. Per-prefix counts match the design spec
         let names = tools.compactMap { $0["name"] as? String }
@@ -125,7 +125,7 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
             ("rail_",     6),
             ("metro_",    1),
             ("transit_",  1),
-            ("bus_",      5),
+            ("bus_",      6),
             ("bike_",     3),
             ("air_",      3),
             ("traffic_",  3),
@@ -177,8 +177,16 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
             // re-parsing every chunk. If a chunk arrives split mid-line we
             // simply wait for the next chunk to complete it.
             if let text = String(data: collected, encoding: .utf8) {
-                for id in expectedResponseIDs where text.contains("\"id\":\(id)") {
-                    seenIDs.insert(id)
+                // Count an id "seen" only once its FULL newline-terminated line has
+                // arrived. A large tools/list response (25 tools, long descriptions)
+                // streams across several chunks; breaking on the first `"id":2`
+                // substring truncates the JSON mid-object and parsing then fails.
+                var lines = text.split(separator: "\n", omittingEmptySubsequences: true)
+                if !text.hasSuffix("\n"), !lines.isEmpty { lines.removeLast() }
+                for line in lines {
+                    for id in expectedResponseIDs where line.contains("\"id\":\(id)") {
+                        seenIDs.insert(id)
+                    }
                 }
                 if seenIDs == expectedResponseIDs { break }
             }

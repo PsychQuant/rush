@@ -6,7 +6,7 @@
 
 ## 狀態
 
-**v0.2-dev** — 24 個 tools，涵蓋 6 種交通模式（鐵路 / 公車 / 共享單車 / 航空 / 路況 / 停車場），含 `transit_route` 台鐵↔台北捷運多模式路由
+**v0.2-dev** — 25 個 tools，涵蓋 6 種交通模式（鐵路 / 公車 / 共享單車 / 航空 / 路況 / 停車場），含 `transit_route`（台鐵↔台北捷運多模式）+ `bus_route`（市內公車直達、A2 即時上車預估）
 
 Roadmap:
 - v0.1: Rail ✅（5 工具）
@@ -85,7 +85,7 @@ TDX 帳號免費註冊：<https://tdx.transportdata.tw/register>
 
 ## 架構特性
 
-- **唯讀**：24 個 tools 全為 GET，無執行風險
+- **唯讀**：25 個 tools 全為 GET，無執行風險
 - **三層快取 TTL**：24h（靜態：站點／路線／停車場／CCTV）· 1h（時刻表）· 5-10 min（新聞）· 0s（即時：ETA、位置、FIDS、停車即時資料）
 - **Rate limit**：TDX 免費層 50/min。429 觸發一次 1s 重試
 - **Empty ≠ error**：空結果是合法回傳，錯誤保留給系統層（auth/network/rate limit）

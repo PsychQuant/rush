@@ -116,6 +116,22 @@ enum BusTools {
                     "additionalProperties": .bool(false)
                 ]),
                 annotations: .init(readOnlyHint: true, openWorldHint: true)
+            ),
+            Tool(
+                name: "bus_route",
+                description: "市內公車直達路由（暫不含轉乘）：給 from_stop、to_stop（站名或 StopUID）與 city，回經過兩站（起站在迄站之前、同方向）的直達路線；每條附上車預估（A2 即時 source:live／班表發車 source:scheduled／班距期望 source:frequency）+ 抵達時刻（有班表才給 source:scheduled；frequency-only 路線抵達從缺 + note，不假裝精確）。站名多筆同名 → 回 matches 釐清。無直達 → routes:[] + note（轉乘尚未支援，Stage 3b）。僅單一城市內。",
+                inputSchema: .object([
+                    "type": .string("object"),
+                    "properties": .object([
+                        "from_stop": .object(["type": .string("string"), "description": .string("起站站名或 StopUID")]),
+                        "to_stop": .object(["type": .string("string"), "description": .string("迄站站名或 StopUID")]),
+                        "city": .object(["type": .string("string"), "description": .string("城市代碼"), "enum": cityEnum]),
+                        "depart_after": .object(["type": .string("string"), "description": .string("出發時間 HH:mm（Asia/Taipei），預設現在")])
+                    ]),
+                    "required": .array([.string("from_stop"), .string("to_stop"), .string("city")]),
+                    "additionalProperties": .bool(false)
+                ]),
+                annotations: .init(readOnlyHint: true, openWorldHint: true)
             )
         ]
     }
@@ -143,6 +159,8 @@ enum BusTools {
                 return try await executeStatusArrivals(arguments: arguments, client: client, cache: cache)
             case "bus_status_positions":
                 return try await executeStatusPositions(arguments: arguments, client: client, cache: cache)
+            case "bus_route":
+                return try await executeBusRoute(arguments: arguments, client: client, cache: cache)
             default:
                 return CallTool.Result(content: [.text(text: "Unknown bus tool: \(name)", annotations: nil, _meta: nil)], isError: true)
             }
@@ -155,6 +173,136 @@ enum BusTools {
     }
 
     // MARK: - Executors
+
+    /// bus_route — direct-route within-city bus routing (Stage 3a). Resolves the two
+    /// stops, intersects StopOfRoute for routes serving origin→dest in one direction,
+    /// then composes board (A2 live / schedule / headway) + arrival (timetable or omit)
+    /// via `BusRouter`. Transfers deferred to 3b.
+    private static func executeBusRoute(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
+        guard let fromQ = arguments["from_stop"]?.stringValue, !fromQ.isEmpty else {
+            throw TDXError.decoding("Missing required parameter: from_stop")
+        }
+        guard let toQ = arguments["to_stop"]?.stringValue, !toQ.isEmpty else {
+            throw TDXError.decoding("Missing required parameter: to_stop")
+        }
+        let city = try parseCity(arguments)
+        let nowMin = nowMinutesTaipei()
+        let weekday = weekdayTaipei()
+        let departAfterMin = arguments["depart_after"]?.stringValue.flatMap(TimetableRouter.minutesOfDay) ?? nowMin
+        let departAfter = TimetableRouter.clock(departAfterMin)
+
+        // Resolve both stops (name or StopUID). Ambiguous / not-found short-circuits.
+        let stops = decodeList(BusStop.self, data: try await client.fetch(
+            path: TDXEndpoints.busStop(city.rawValue), cacheTTL: 86400, cache: cache))
+        let from: (uid: String, name: String)
+        switch resolveStop(fromQ, role: "from_stop", stops: stops, city: city, departAfter: departAfter) {
+        case .one(let u, let n): from = (u, n)
+        case .result(let r): return r
+        }
+        let to: (uid: String, name: String)
+        switch resolveStop(toQ, role: "to_stop", stops: stops, city: city, departAfter: departAfter) {
+        case .one(let u, let n): to = (u, n)
+        case .result(let r): return r
+        }
+
+        // Candidate direct routes: serve origin then dest in the same direction (ordered Stops).
+        let routes = decodeList(BusStopOfRoute.self, data: try await client.fetch(
+            path: TDXEndpoints.busStopOfRoute(city.rawValue), cacheTTL: 3600, cache: cache))
+        var candidates: [BusRouter.Candidate] = []
+        for r in routes {
+            guard let oi = r.stops.firstIndex(where: { $0.stopUID == from.uid }),
+                  let di = r.stops.firstIndex(where: { $0.stopUID == to.uid }), oi < di else { continue }
+            candidates.append(.init(
+                routeUID: r.routeUID, routeName: r.routeName.zhTw ?? r.routeUID, subRouteName: nil,
+                direction: r.direction ?? 0,
+                originStopUID: from.uid, originStopName: r.stops[oi].stopName.zhTw ?? from.name,
+                destStopUID: to.uid, destStopName: r.stops[di].stopName.zhTw ?? to.name))
+        }
+        if candidates.isEmpty {
+            return ToolResult.json([
+                "from": from.name, "to": to.name, "city": city.rawValue, "depart_after": departAfter,
+                "routes": [[String: Any]](),
+                "note": "查無直達 \(from.name) → \(to.name) 的公車路線；轉乘路由尚未支援（Stage 3b）"])
+        }
+
+        // A2 live ETA at the origin stop (graceful — fall back to schedule/headway).
+        var a2BySig: [String: Int] = [:]
+        if let a2 = try? await client.fetch(
+            path: TDXEndpoints.busEstimatedTimeOfArrival(city.rawValue),
+            queryItems: [URLQueryItem(name: "$filter", value: "StopUID eq '\(from.uid)'")],
+            cacheTTL: 0, cache: cache) {
+            for a in decodeList(BusArrival.self, data: a2) {
+                guard let ru = a.routeUID, let eta = a.estimateTime, eta >= 0, (a.stopStatus ?? 0) == 0 else { continue }
+                a2BySig[BusRouter.sig(ru, a.direction ?? 0)] = eta
+            }
+        }
+        // Schedule (graceful — without it, arrival is omitted + board falls to A2 only).
+        var scheduleBySig: [String: BusSchedule] = [:]
+        if let sc = try? await client.fetch(path: TDXEndpoints.busSchedule(city.rawValue), cacheTTL: 3600, cache: cache) {
+            for s in decodeList(BusSchedule.self, data: sc) {
+                let k = BusRouter.sig(s.routeUID, s.direction ?? 0)
+                if scheduleBySig[k] == nil { scheduleBySig[k] = s }
+            }
+        }
+
+        let options = BusRouter.route(candidates: candidates, a2BySig: a2BySig, scheduleBySig: scheduleBySig,
+                                      nowMin: nowMin, departAfterMin: departAfterMin, weekday: weekday)
+        let routesOut: [[String: Any]] = options.map { o in
+            var d: [String: Any] = [
+                "route_name": o.routeName, "direction": o.direction,
+                "board_stop": o.boardStop, "alight_stop": o.alightStop, "board_source": o.boardSource]
+            if let sub = o.subRouteName { d["sub_route_name"] = sub }
+            if let b = o.boardInMin { d["board_in_min"] = b }
+            if let at = o.arrivalTime {
+                d["arrival_time"] = at; d["arrival_source"] = o.arrivalSource ?? "scheduled"
+            } else {
+                d["arrival_time"] = NSNull()
+            }
+            if let n = o.note { d["note"] = n }
+            return d
+        }
+        return ToolResult.json([
+            "from": from.name, "to": to.name, "city": city.rawValue, "depart_after": departAfter,
+            "routes": routesOut])
+    }
+
+    /// Stop resolution: exact StopUID, else fuzzy by name. One physical stop → `.one`;
+    /// none or multiple → a ready `CallTool.Result` (note / matches) to return directly.
+    private enum StopResolution { case one(uid: String, name: String); case result(CallTool.Result) }
+
+    private static func resolveStop(_ q: String, role: String, stops: [BusStop],
+                                    city: BusCity, departAfter: String) -> StopResolution {
+        if let s = stops.first(where: { $0.stopUID == q }) {
+            return .one(uid: s.stopUID, name: s.stopName.zhTw ?? s.stopUID)
+        }
+        let matched = fuzzyMatchStops(query: q, in: stops)
+        if matched.isEmpty {
+            return .result(ToolResult.json([
+                "query": q, "role": role, "city": city.rawValue, "depart_after": departAfter,
+                "routes": [[String: Any]](), "note": "查無 \(role) 站「\(q)」"]))
+        }
+        let uniqueUIDs = Set(matched.map { $0.stopUID })
+        if uniqueUIDs.count == 1, let s = matched.first {
+            return .one(uid: s.stopUID, name: s.stopName.zhTw ?? s.stopUID)
+        }
+        let ms = matched.prefix(20).map { s -> [String: Any] in
+            var d: [String: Any] = ["stop_uid": s.stopUID, "name": s.stopName.zhTw ?? ""]
+            if let p = s.stopPosition { d["lat"] = p.positionLat; d["lon"] = p.positionLon }
+            return d
+        }
+        return .result(ToolResult.json([
+            "ambiguous": role, "query": q, "city": city.rawValue, "matches": Array(ms),
+            "note": "「\(q)」對應多個站牌，請改用 StopUID 或更精確站名"]))
+    }
+
+    private static func nowMinutesTaipei() -> Int {
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: "Asia/Taipei")!
+        let n = Date(); return cal.component(.hour, from: n) * 60 + cal.component(.minute, from: n)
+    }
+    private static func weekdayTaipei() -> Int {
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: "Asia/Taipei")!
+        return cal.component(.weekday, from: Date())
+    }
 
     private static func executeSearchRoutes(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
         let (query, city) = try parseQueryCity(arguments)

@@ -67,8 +67,9 @@ final class TDXEndpointsTests: XCTestCase {
         // parking 2 = 26. Plus #5 metro O/D routing 4 (StationOfRoute,
         // S2STravelTime, Frequency, Line — one representative TRTC case each) = 30.
         // Plus #6 metro LineTransfer 1 (representative TRTC) = 31.
+        // Plus Stage 3a bus Schedule 1 (representative) = 32.
         // (Maritime removed — no live API on the TDX platform.)
-        XCTAssertEqual(TDXEndpoints.allContractCases.count, 31)
+        XCTAssertEqual(TDXEndpoints.allContractCases.count, 32)
     }
 
     func testContractCaseKeysAreUnique() {

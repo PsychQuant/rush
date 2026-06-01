@@ -150,3 +150,111 @@ struct BusStopOfRouteStop: Codable {
         case stopName = "StopName"
     }
 }
+
+// MARK: - Schedule (Bus/Schedule) — mixed Timetables (departure phase) + Frequencys (headway)
+
+/// Entry in `/v2/Bus/Schedule/City/{City}`. A route+direction carries either
+/// `timetables` (per-trip per-stop times — departure phase) or `frequencys`
+/// (headway bands), or both. `bus_route` uses timetables for arrival ride-time
+/// and frequencys for the board expected-wait fallback.
+struct BusSchedule: Codable {
+    let routeUID: String
+    let routeName: LocalizedName?
+    let subRouteUID: String?
+    let subRouteName: LocalizedName?
+    let direction: Int?
+    let frequencys: [BusFrequency]?
+    let timetables: [BusTimetable]?
+
+    enum CodingKeys: String, CodingKey {
+        case routeUID = "RouteUID"
+        case routeName = "RouteName"
+        case subRouteUID = "SubRouteUID"
+        case subRouteName = "SubRouteName"
+        case direction = "Direction"
+        case frequencys = "Frequencys"
+        case timetables = "Timetables"
+    }
+}
+
+struct BusFrequency: Codable {
+    let startTime: String
+    let endTime: String
+    let minHeadwayMins: Int
+    let maxHeadwayMins: Int
+    let serviceDay: BusServiceDay?
+
+    enum CodingKeys: String, CodingKey {
+        case startTime = "StartTime"
+        case endTime = "EndTime"
+        case minHeadwayMins = "MinHeadwayMins"
+        case maxHeadwayMins = "MaxHeadwayMins"
+        case serviceDay = "ServiceDay"
+    }
+}
+
+struct BusTimetable: Codable {
+    let tripID: String?
+    let serviceDay: BusServiceDay?
+    let stopTimes: [BusScheduleStopTime]
+
+    enum CodingKeys: String, CodingKey {
+        case tripID = "TripID"
+        case serviceDay = "ServiceDay"
+        case stopTimes = "StopTimes"
+    }
+}
+
+struct BusScheduleStopTime: Codable {
+    let stopSequence: Int?
+    let stopUID: String?
+    let stopID: String?
+    let arrivalTime: String?
+    let departureTime: String?
+
+    enum CodingKeys: String, CodingKey {
+        case stopSequence = "StopSequence"
+        case stopUID = "StopUID"
+        case stopID = "StopID"
+        case arrivalTime = "ArrivalTime"
+        case departureTime = "DepartureTime"
+    }
+}
+
+/// Bus `ServiceDay` uses Int flags (1/0) per weekday (TRTC metro uses Bool — distinct).
+struct BusServiceDay: Codable {
+    let monday: Int?
+    let tuesday: Int?
+    let wednesday: Int?
+    let thursday: Int?
+    let friday: Int?
+    let saturday: Int?
+    let sunday: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case monday = "Monday"
+        case tuesday = "Tuesday"
+        case wednesday = "Wednesday"
+        case thursday = "Thursday"
+        case friday = "Friday"
+        case saturday = "Saturday"
+        case sunday = "Sunday"
+    }
+
+    /// Whether this service-day table is active on the given Gregorian weekday
+    /// (1=Sunday … 7=Saturday, matching Calendar.component(.weekday)).
+    func active(weekday: Int) -> Bool {
+        let v: Int?
+        switch weekday {
+        case 1: v = sunday
+        case 2: v = monday
+        case 3: v = tuesday
+        case 4: v = wednesday
+        case 5: v = thursday
+        case 6: v = friday
+        case 7: v = saturday
+        default: v = nil
+        }
+        return (v ?? 0) == 1
+    }
+}

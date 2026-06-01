@@ -45,13 +45,13 @@ This file is read by LLM agents (Claude Code, Codex, etc.) that use this MCP ser
 
 - **Stage 1**（已出貨 v0.6.0）：`rail_route` — TRA 時刻表 time-dependent 最早抵達 + 即時誤點調整。
 - **Stage 2**（進行中）：`transit_route` — TRA↔台北捷運多模式路由，scoped 到策劃式 interchange registry；捷運段 expected-wait。
-- **Stage 3**（未來）：統一多模式核心 + 公車 + 更完整 live feed。
+- **Stage 3**（進行中）：公車 + 更完整 live feed + 統一多模式核心。**3a（已實作）**：`bus_route` 市內公車直達路由（A2 即時上車預估 + 班表抵達／誠實從缺）。3b：bus↔rail 多模式 + 轉乘。3c：統一 RAPTOR 核心（緩議）。
 
 ## What this MCP does
 
-Provides 24 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
+Provides 25 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
 
-Current build covers **all 24 tools across 6 modes**. Per-module tool catalogue below.
+Current build covers **all 25 tools across 6 modes**. Per-module tool catalogue below.
 
 > **Maritime (航運/渡輪) is not covered.** TDX no longer serves it on the unified API (every `v2`/`v3` `Maritime`/`Ship` path 404s) and the legacy PTX `Ship` API is decommissioned (403 regardless of auth). The contract suite confirmed there is no callable maritime endpoint, so those tools were removed rather than ship broken. See PsychQuant/che-transport-mcp#4.
 
@@ -103,7 +103,7 @@ CheTransportMCP --setup
 
 `--setup` prompts for TDX `client_id` / `client_secret`（register at <https://tdx.transportdata.tw/register>），writes them to the macOS keychain under service `che-transport-tdx`, and verifies with a live OAuth round-trip. The secret prompt uses `getpass` so it never echoes.
 
-## Tools (24 total across 6 modes)
+## Tools (25 total across 6 modes)
 
 ### Rail (7)
 - `rail_list_systems()` — 列出 8 個支援 system
@@ -118,12 +118,13 @@ CheTransportMCP --setup
 ### Multi-modal (1) — Stage 2 of the (B) routing engine
 - `transit_route(from, to, depart_after?)` — TRA↔台北捷運（TRTC）多模式最早抵達路由。time-anchored 組合：TRA 段用時刻表 + 即時誤點（`source: live`），捷運段用班距期望等車 `E[wait]=headway/2`（`source: frequency`，TDX 捷運無 per-vehicle phase 故無 live）。跨系統轉乘僅限策劃的 interchange registry（台北車站/板橋/南港/松山）。回 legs（每段 mode + 起訖 + 時刻 + source）+ transfers（交會站 + walk_min）+ arrival_time + duration_min + transfer_count。站名多系統同名 → 回 `matches` 釐清；查無路徑 → `routes:[] + note`（empty ≠ error）。僅 TRA + TRTC；公車／其他捷運／THSR 不在此 stage。
 
-### Bus (5) — city 必填
+### Bus (6) — city 必填
 - `bus_search_routes(query, city)` — 路線模糊搜尋
 - `bus_search_stops(query, city)` — 站牌模糊搜尋
 - `bus_find_routes(from_stop, to_stop, city)` — O/D 候選路線（從 `StopOfRoute` 交集）
 - `bus_status_arrivals(stop_id, city)` — 站牌即時到站預估
 - `bus_status_positions(route_name, city)` — 路線即時車輛位置
+- `bus_route(from_stop, to_stop, city, depart_after?)` — 市內公車**直達**路由（Stage 3a；暫不含轉乘）。回經過兩站（起站在迄站之前、同方向）的直達路線，每條附上車預估（A2 即時 `source:live`／班表發車 `source:scheduled`／班距期望 `source:frequency`）+ 抵達時刻（有班表才給 `source:scheduled`；frequency-only 路線抵達從缺 + note，不假裝精確）。站名多筆同名 → `matches`；無直達 → `routes:[] + note`。
 
 **BusCity 22 個代碼**：`Taipei`, `NewTaipei`, `Taoyuan`, `Taichung`, `Tainan`, `Kaohsiung`, `Keelung`, `Hsinchu`, `HsinchuCounty`, `MiaoliCounty`, `ChanghuaCounty`, `NantouCounty`, `YunlinCounty`, `ChiayiCounty`, `Chiayi`, `PingtungCounty`, `YilanCounty`, `HualienCounty`, `TaitungCounty`, `KinmenCounty`, `PenghuCounty`, `LienchiangCounty`
 

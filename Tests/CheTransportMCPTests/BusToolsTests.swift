@@ -42,15 +42,16 @@ final class BusToolsTests: XCTestCase {
 
     // MARK: - Tool surface
 
-    func testDefineToolsReturnsFive() {
+    func testDefineToolsReturnsSix() {
         let names = BusTools.defineTools().map(\.name)
-        XCTAssertEqual(names.count, 5)
+        XCTAssertEqual(names.count, 6)
         XCTAssertEqual(Set(names), Set([
             "bus_search_routes",
             "bus_search_stops",
             "bus_find_routes",
             "bus_status_arrivals",
-            "bus_status_positions"
+            "bus_status_positions",
+            "bus_route"
         ]))
     }
 
@@ -74,4 +75,32 @@ final class BusToolsTests: XCTestCase {
         let city = try BusTools.parseCity(["city": .string("Kaohsiung")])
         XCTAssertEqual(city, .Kaohsiung)
     }
+
+    // MARK: - BusSchedule decode (#bus-routing task 2)
+
+    func testBusScheduleDecodesTimetablesAndFrequencys() throws {
+        let json = """
+        [
+         {"RouteUID":"TPE1","RouteName":{"Zh_tw":"671"},"SubRouteName":{"Zh_tw":"671"},"Direction":0,
+          "Timetables":[{"TripID":"t1","ServiceDay":{"Monday":1,"Sunday":0},
+            "StopTimes":[{"StopSequence":1,"StopUID":"S1","ArrivalTime":"08:00","DepartureTime":"08:00"},
+                         {"StopSequence":2,"StopUID":"S2","ArrivalTime":"08:18","DepartureTime":"08:18"}]}]},
+         {"RouteUID":"TPE2","RouteName":{"Zh_tw":"234"},"Direction":0,
+          "Frequencys":[{"StartTime":"06:00","EndTime":"22:00","MinHeadwayMins":8,"MaxHeadwayMins":12,
+            "ServiceDay":{"Monday":1,"Sunday":1}}]}
+        ]
+        """
+        let list = TDXDecode.list(BusSchedule.self, from: Data(json.utf8))
+        XCTAssertEqual(list.count, 2)
+        let tt = try XCTUnwrap(list.first { ($0.timetables?.isEmpty == false) })
+        let trip = try XCTUnwrap(tt.timetables?.first)
+        XCTAssertEqual(trip.stopTimes.count, 2)
+        XCTAssertEqual(trip.stopTimes[0].departureTime, "08:00")
+        XCTAssertEqual(trip.stopTimes[1].arrivalTime, "08:18")
+        XCTAssertTrue(trip.serviceDay?.active(weekday: 2) ?? false, "Monday active")
+        XCTAssertFalse(trip.serviceDay?.active(weekday: 1) ?? true, "Sunday inactive")
+        let fq = try XCTUnwrap(list.first { ($0.frequencys?.isEmpty == false) })
+        XCTAssertEqual(fq.frequencys?.first?.minHeadwayMins, 8)
+    }
+
 }
