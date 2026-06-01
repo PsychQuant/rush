@@ -174,7 +174,7 @@ enum BusTools {
                 "to": route.destinationStopNameZh ?? ""
             ]
         }
-        return jsonResult(["matches": matches, "city": city.rawValue])
+        return ToolResult.json(["matches": matches, "city": city.rawValue])
     }
 
     private static func executeSearchStops(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
@@ -198,7 +198,7 @@ enum BusTools {
             }
             return dict
         }
-        return jsonResult(["matches": matches, "city": city.rawValue])
+        return ToolResult.json(["matches": matches, "city": city.rawValue])
     }
 
     private static func executeFindRoutes(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
@@ -226,7 +226,7 @@ enum BusTools {
                 "direction": route.direction ?? -1
             ]
         }
-        return jsonResult(["matches": matches, "city": city.rawValue, "from_stop": fromStop, "to_stop": toStop])
+        return ToolResult.json(["matches": matches, "city": city.rawValue, "from_stop": fromStop, "to_stop": toStop])
     }
 
     private static func executeStatusArrivals(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
@@ -251,7 +251,7 @@ enum BusTools {
                 "stop_status": a.stopStatus ?? 0
             ]
         }
-        return jsonResult(["arrivals": payload, "city": city.rawValue, "stop_id": stopID])
+        return ToolResult.json(["arrivals": payload, "city": city.rawValue, "stop_id": stopID])
     }
 
     private static func executeStatusPositions(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
@@ -278,7 +278,7 @@ enum BusTools {
             }
             return dict
         }
-        return jsonResult(["positions": payload, "city": city.rawValue, "route_name": routeName])
+        return ToolResult.json(["positions": payload, "city": city.rawValue, "route_name": routeName])
     }
 
     // MARK: - Helpers
@@ -325,11 +325,5 @@ enum BusTools {
 
     static func decodeList<T: Codable>(_ type: T.Type, data: Data) -> [T] {
         (try? JSONDecoder().decode([T].self, from: data)) ?? []
-    }
-
-    static func jsonResult(_ obj: [String: Any]) -> CallTool.Result {
-        let data = (try? JSONSerialization.data(withJSONObject: JSONSanitize.clean(obj))) ?? Data("{}".utf8)
-        let text = String(data: data, encoding: .utf8) ?? "{}"
-        return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
     }
 }

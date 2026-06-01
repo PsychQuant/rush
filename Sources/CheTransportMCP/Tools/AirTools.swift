@@ -106,7 +106,7 @@ enum AirTools {
                 "city_en": airport.airportCityName?.en ?? ""
             ]
         }
-        return jsonResult(["airports": payload])
+        return ToolResult.json(["airports": payload])
     }
 
     private static func executeFindFlights(arguments: [String: Value], client: TDXClient, cache: Cache, live: Bool) async throws -> CallTool.Result {
@@ -142,7 +142,7 @@ enum AirTools {
                 "updated_at": flight.updateTime ?? ""
             ]
         }
-        return jsonResult([
+        return ToolResult.json([
             "airport": airport,
             "direction": direction,
             "flights": payload
@@ -170,11 +170,5 @@ enum AirTools {
 
     static func decodeList<T: Codable>(_ type: T.Type, data: Data) -> [T] {
         (try? JSONDecoder().decode([T].self, from: data)) ?? []
-    }
-
-    static func jsonResult(_ obj: [String: Any]) -> CallTool.Result {
-        let data = (try? JSONSerialization.data(withJSONObject: JSONSanitize.clean(obj))) ?? Data("{}".utf8)
-        let text = String(data: data, encoding: .utf8) ?? "{}"
-        return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
     }
 }

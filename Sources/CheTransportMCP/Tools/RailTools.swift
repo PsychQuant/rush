@@ -197,9 +197,7 @@ enum RailTools {
 
     private static func executeListSystems() async throws -> CallTool.Result {
         let systems = listSystems()
-        let data = try JSONSerialization.data(withJSONObject: JSONSanitize.clean(["systems": systems]))
-        let json = String(data: data, encoding: .utf8) ?? "{}"
-        return CallTool.Result(content: [.text(text: json, annotations: nil, _meta: nil)])
+        return ToolResult.json(["systems": systems])
     }
 
     private static func executeFindTrains(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
@@ -332,9 +330,7 @@ enum RailTools {
             }
         }
 
-        let json = try JSONSerialization.data(withJSONObject: JSONSanitize.clean(["matches": allMatches]))
-        let text = String(data: json, encoding: .utf8) ?? "{}"
-        return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
+        return ToolResult.json(["matches": allMatches])
     }
 }
 
@@ -419,12 +415,12 @@ extension RailTools {
                 cacheTTL: 3600, cache: cache)
             trains = TDXDecode.list(RailODFare.self, from: odData)
         } catch {
-            return routeResult(["from": from, "to": to, "system": "TRA", "depart_after": departAfter,
+            return ToolResult.json(["from": from, "to": to, "system": "TRA", "depart_after": departAfter,
                                 "legs": [[String: Any]](),
                                 "note": "TRA 時刻表暫時無法取得（TDX 端問題）：\(error.localizedDescription)"])
         }
         if trains.isEmpty {
-            return routeResult(["from": from, "to": to, "system": "TRA", "depart_after": departAfter,
+            return ToolResult.json(["from": from, "to": to, "system": "TRA", "depart_after": departAfter,
                                 "legs": [[String: Any]](),
                                 "note": "查無 \(from) → \(to) 的當日 TRA 班次"])
         }
@@ -440,7 +436,7 @@ extension RailTools {
         let conns = TimetableRouter.connections(from: trains, delays: delays)
         guard let itinerary = TimetableRouter.earliestArrival(
             connections: conns, from: from, to: to, departAfterMin: departAfterMin) else {
-            return routeResult(["from": from, "to": to, "system": "TRA", "depart_after": departAfter,
+            return ToolResult.json(["from": from, "to": to, "system": "TRA", "depart_after": departAfter,
                                 "legs": [[String: Any]](),
                                 "note": "\(departAfter) 之後查無可達 \(to) 的班次"])
         }
@@ -455,7 +451,7 @@ extension RailTools {
              "source": leg.live ? "live" : "scheduled"]
         }
         let boardMin = itinerary.legs.first?.depMin ?? departAfterMin
-        return routeResult([
+        return ToolResult.json([
             "from": from, "to": to, "system": "TRA", "depart_after": departAfter,
             "arrival_time": TimetableRouter.clock(itinerary.arrMin),
             "duration_min": itinerary.arrMin - boardMin,
@@ -468,11 +464,5 @@ extension RailTools {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = TimeZone(identifier: "Asia/Taipei")!
         return cal.component(.hour, from: Date()) * 60 + cal.component(.minute, from: Date())
-    }
-
-    private static func routeResult(_ payload: [String: Any]) -> CallTool.Result {
-        let data = (try? JSONSerialization.data(withJSONObject: JSONSanitize.clean(payload))) ?? Data("{}".utf8)
-        let text = String(data: data, encoding: .utf8) ?? "{}"
-        return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
     }
 }

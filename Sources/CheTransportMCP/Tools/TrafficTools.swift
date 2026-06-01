@@ -101,7 +101,7 @@ enum TrafficTools {
                 "collected_at": entry.dataCollectTime ?? ""
             ]
         }
-        return jsonResult(["entries": payload, "count": payload.count])
+        return ToolResult.json(["entries": payload, "count": payload.count])
     }
 
     private static func executeIncidents(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
@@ -131,7 +131,7 @@ enum TrafficTools {
                 "published_at": incident.publishTime ?? ""
             ]
         }
-        return jsonResult(["incidents": payload, "count": payload.count])
+        return ToolResult.json(["incidents": payload, "count": payload.count])
     }
 
     private static func executeCCTV(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
@@ -161,12 +161,6 @@ enum TrafficTools {
             }
             return dict
         }
-        return jsonResult(["cctvs": payload, "count": payload.count])
-    }
-
-    static func jsonResult(_ obj: [String: Any]) -> CallTool.Result {
-        let data = (try? JSONSerialization.data(withJSONObject: JSONSanitize.clean(obj))) ?? Data("{}".utf8)
-        let text = String(data: data, encoding: .utf8) ?? "{}"
-        return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
+        return ToolResult.json(["cctvs": payload, "count": payload.count])
     }
 }

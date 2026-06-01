@@ -106,7 +106,7 @@ enum ParkingTools {
             }
             return dict
         }
-        return jsonResult(["lots": payload, "city": city.rawValue, "count": payload.count])
+        return ToolResult.json(["lots": payload, "city": city.rawValue, "count": payload.count])
     }
 
     private static func executeStatus(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
@@ -130,7 +130,7 @@ enum ParkingTools {
                 "collected_at": entry.dataCollectTime ?? ""
             ]
         }
-        return jsonResult(["entries": payload, "city": city.rawValue, "count": payload.count])
+        return ToolResult.json(["entries": payload, "city": city.rawValue, "count": payload.count])
     }
 
     static func parseCity(_ arguments: [String: Value]) throws -> ParkingCity {
@@ -142,11 +142,5 @@ enum ParkingTools {
             throw TDXError.decoding("Invalid city '\(cityRaw)'. Valid: \(valid)")
         }
         return city
-    }
-
-    static func jsonResult(_ obj: [String: Any]) -> CallTool.Result {
-        let data = (try? JSONSerialization.data(withJSONObject: JSONSanitize.clean(obj))) ?? Data("{}".utf8)
-        let text = String(data: data, encoding: .utf8) ?? "{}"
-        return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
     }
 }

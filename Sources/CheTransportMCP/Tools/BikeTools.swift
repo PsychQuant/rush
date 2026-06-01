@@ -150,7 +150,7 @@ enum BikeTools {
             }
             return dict
         }
-        return jsonResult(["matches": matches, "city": city.rawValue])
+        return ToolResult.json(["matches": matches, "city": city.rawValue])
     }
 
     private static func executeStationsNearby(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
@@ -202,7 +202,7 @@ enum BikeTools {
             }
             return dict
         }
-        return jsonResult([
+        return ToolResult.json([
             "matches": payload,
             "city": city.rawValue,
             "center": ["lat": lat, "lon": lon],
@@ -224,9 +224,9 @@ enum BikeTools {
         )
         let availability = decodeList(BikeAvailability.self, data: data)
         guard let avail = availability.first else {
-            return jsonResult(["station_id": stationID, "city": city.rawValue, "found": false])
+            return ToolResult.json(["station_id": stationID, "city": city.rawValue, "found": false])
         }
-        return jsonResult([
+        return ToolResult.json([
             "station_id": stationID,
             "city": city.rawValue,
             "found": true,
@@ -279,11 +279,5 @@ enum BikeTools {
 
     static func decodeList<T: Codable>(_ type: T.Type, data: Data) -> [T] {
         (try? JSONDecoder().decode([T].self, from: data)) ?? []
-    }
-
-    static func jsonResult(_ obj: [String: Any]) -> CallTool.Result {
-        let data = (try? JSONSerialization.data(withJSONObject: JSONSanitize.clean(obj))) ?? Data("{}".utf8)
-        let text = String(data: data, encoding: .utf8) ?? "{}"
-        return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
     }
 }

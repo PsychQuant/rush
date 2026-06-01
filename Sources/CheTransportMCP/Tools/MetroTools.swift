@@ -124,18 +124,12 @@ enum MetroTools {
 
         let routes = candidateRoutes(graph: graph, lineMeta: lineMeta, headwayRange: headwayRange, from: from, to: to)
         if routes.isEmpty {
-            return resultJSON([
+            return ToolResult.json([
                 "from": from, "to": to, "system": sys.rawValue, "routes": [],
                 "note": "在此捷運系統內找不到連通 \(from) 與 \(to) 的路徑（站 ID 可能有誤，或屬不同系統）。"
             ])
         }
-        return resultJSON(["from": from, "to": to, "system": sys.rawValue, "routes": routes])
-    }
-
-    private static func resultJSON(_ payload: [String: Any]) -> CallTool.Result {
-        let data = (try? JSONSerialization.data(withJSONObject: JSONSanitize.clean(payload))) ?? Data("{}".utf8)
-        let text = String(data: data, encoding: .utf8) ?? "{}"
-        return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
+        return ToolResult.json(["from": from, "to": to, "system": sys.rawValue, "routes": routes])
     }
 }
 
