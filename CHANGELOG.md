@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.5.0] — 2026-05-31
+## [0.6.0] — 2026-06-01
+
+### Added
+- `rail_route(from, to, depart_after?, system)` — TRA **time-dependent** O/D routing (#7, Stage 1 of the time-dependent transit-routing engine). Routes over the real `DailyTrainTimetable` (per-train departure/arrival times) with a connection-scan earliest-arrival search, then applies live `TrainLiveBoard` delays so the chosen itinerary reflects current conditions — a delayed train can lose to a later on-time one. Returns `legs[]` (train_no, from/to, dep/arr times, delay_min, `source: live|scheduled`) + `arrival_time` + `duration_min`. TRA-only (the only mode with both a public timetable and a live delay board); distinct from `rail_find_trains` (which lists all trains). Tool count 22 → 23. Reuses existing `RailODFare`/`RailStopTime`/`RailLiveTrain` models + existing registry endpoints (both v3-wrapped, decoded via `TDXDecode.list`); graceful when the timetable or live board is unavailable (empty + note ≠ error).
+
 
 ### Added
 - `metro_find_route` now does **cross-line transfer** routing (#6), not just direct. The metro network is modelled as a graph (stations as nodes; same-line adjacency from `S2STravelTime`; transfer edges from a new `LineTransfer` dataset weighted by walk time + estimated boarding wait) and the shortest path is returned. A direct route is simply a zero-transfer path, so the same query also catches cases where a 環狀線 transfer beats a long direct ride.
