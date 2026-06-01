@@ -6,7 +6,7 @@
 
 ## 狀態
 
-**v0.2-dev** — 22 個 tools，涵蓋 6 種交通模式（鐵路 / 公車 / 共享單車 / 航空 / 路況 / 停車場）
+**v0.2-dev** — 23 個 tools，涵蓋 6 種交通模式（鐵路 / 公車 / 共享單車 / 航空 / 路況 / 停車場）
 
 Roadmap:
 - v0.1: Rail ✅（5 工具）
@@ -28,7 +28,7 @@ TDX 帳號免費註冊：<https://tdx.transportdata.tw/register>
 
 ## Tools
 
-### 鐵路（6）
+### 鐵路（7）
 
 | Tool | 用途 |
 |------|------|
@@ -38,6 +38,7 @@ TDX 帳號免費註冊：<https://tdx.transportdata.tw/register>
 | `rail_status_train` | 特定列車即時誤點 |
 | `rail_status_station` | 站到站板（即時）|
 | `metro_find_route` | 捷運 O/D 路線（含跨線轉乘）：站點網路最短路徑，回 `legs[]`（每段所搭路線）+ `transfers[]`（每次換線，含步行 + 預估候車）+ `transfer_count` + 總旅行時間（直達 = 0 transfer 路徑）|
+| `rail_route` | TRA 時刻表 time-dependent O/D 路由：真實時刻表最早抵達 + 即時誤點調整，回 legs + arrival_time + duration_min；僅 TRA |
 
 ### 公車（5）
 
@@ -84,7 +85,7 @@ TDX 帳號免費註冊：<https://tdx.transportdata.tw/register>
 
 ## 架構特性
 
-- **唯讀**：22 個 tools 全為 GET，無執行風險
+- **唯讀**：23 個 tools 全為 GET，無執行風險
 - **三層快取 TTL**：24h（靜態：站點／路線／停車場／CCTV）· 1h（時刻表）· 5-10 min（新聞）· 0s（即時：ETA、位置、FIDS、停車即時資料）
 - **Rate limit**：TDX 免費層 50/min。429 觸發一次 1s 重試
 - **Empty ≠ error**：空結果是合法回傳，錯誤保留給系統層（auth/network/rate limit）

@@ -33,9 +33,9 @@ This file is read by LLM agents (Claude Code, Codex, etc.) that use this MCP ser
 
 ## What this MCP does
 
-Provides 22 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
+Provides 23 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
 
-Current build covers **all 22 tools across 6 modes**. Per-module tool catalogue below.
+Current build covers **all 23 tools across 6 modes**. Per-module tool catalogue below.
 
 > **Maritime (航運/渡輪) is not covered.** TDX no longer serves it on the unified API (every `v2`/`v3` `Maritime`/`Ship` path 404s) and the legacy PTX `Ship` API is decommissioned (403 regardless of auth). The contract suite confirmed there is no callable maritime endpoint, so those tools were removed rather than ship broken. See PsychQuant/che-transport-mcp#4.
 
@@ -87,9 +87,9 @@ CheTransportMCP --setup
 
 `--setup` prompts for TDX `client_id` / `client_secret`（register at <https://tdx.transportdata.tw/register>），writes them to the macOS keychain under service `che-transport-tdx`, and verifies with a live OAuth round-trip. The secret prompt uses `getpass` so it never echoes.
 
-## Tools (22 total across 6 modes)
+## Tools (23 total across 6 modes)
 
-### Rail (6)
+### Rail (7)
 - `rail_list_systems()` — 列出 8 個支援 system
 - `rail_search_stations(query, system?)` — 模糊搜尋站點 → station_id（未指定 system 會並行 fan-out）
 - `rail_find_trains(from, to, date, system)` — O/D 找班次（僅 TRA / THSR）
@@ -97,6 +97,7 @@ CheTransportMCP --setup
 - `rail_status_station(station_id, system)` — 站到站板（即時）
   - Note: `window_min` 參數在 schema 中接受（forward-compatibility），但目前 **未生效** — TDX `StationLiveBoard` endpoint 自帶預設視窗。Client-side 視窗過濾預計 v0.3 加入。
 - `metro_find_route(from, to, system)` — 捷運 O/D 路線（含跨線轉乘）：建站網圖跑最短路徑，回 routes[]，每條含 legs（每段線+時間+班距）+ transfers（換乘站+步行+估計等車）+ transfer_count + 總時間。直達 = 0 transfer。
+- `rail_route(from, to, depart_after?, system)` — TRA 時刻表 time-dependent 最早抵達路由：套用 TrainLiveBoard 即時誤點調整（誤點班次可能被較晚但實際更早到的車取代），回 legs（車次/起訖/開到時刻/誤點/source）+ arrival_time + duration_min。僅 TRA；與 rail_find_trains（列班次）不同。
 
 ### Bus (5) — city 必填
 - `bus_search_routes(query, city)` — 路線模糊搜尋

@@ -125,6 +125,35 @@ enum RailTools {
                 ]),
                 annotations: .init(readOnlyHint: true, openWorldHint: true)
             ),
+            Tool(
+                name: "rail_route",
+                description: "查 TRA 時刻表 O/D 路由：給起站、迄站、（可選）最早出發時間，在當日真實時刻表上算最早抵達 itinerary，並套用即時誤點（TrainLiveBoard）調整——表訂最早的車若誤點，可能改回較晚但實際更早到的車。回 legs（每段：車次、起訖站、開/到時刻、誤點分、source: live|scheduled）+ arrival_time + duration_min。與 rail_find_trains（列全部班次）用途不同。僅支援 TRA。",
+                inputSchema: .object([
+                    "type": .string("object"),
+                    "properties": .object([
+                        "from": .object([
+                            "type": .string("string"),
+                            "description": .string("起站 ID（用 rail_search_stations 查詢）")
+                        ]),
+                        "to": .object([
+                            "type": .string("string"),
+                            "description": .string("迄站 ID（用 rail_search_stations 查詢）")
+                        ]),
+                        "depart_after": .object([
+                            "type": .string("string"),
+                            "description": .string("最早出發時間 HH:mm（Asia/Taipei，預設現在）")
+                        ]),
+                        "system": .object([
+                            "type": .string("string"),
+                            "description": .string("鐵路系統代碼，僅支援 TRA（預設 TRA）"),
+                            "enum": .array([.string("TRA")])
+                        ])
+                    ]),
+                    "required": .array([.string("from"), .string("to")]),
+                    "additionalProperties": .bool(false)
+                ]),
+                annotations: .init(readOnlyHint: true, openWorldHint: true)
+            ),
         ]
     }
 
@@ -151,6 +180,8 @@ enum RailTools {
                 return try await executeStatusTrain(arguments: arguments, client: client, cache: cache)
             case "rail_status_station":
                 return try await executeStatusStation(arguments: arguments, client: client, cache: cache)
+            case "rail_route":
+                return try await executeRoute(arguments: arguments, client: client, cache: cache)
             default:
                 return CallTool.Result(content: [.text(text: "Unknown tool: \(name)", annotations: nil, _meta: nil)], isError: true)
             }
@@ -350,5 +381,98 @@ extension RailTools {
         }
         // Fall back to bare array (metro endpoints)
         return (try? JSONDecoder().decode([RailStation].self, from: data)) ?? []
+    }
+}
+
+// MARK: - rail_route: TRA time-dependent earliest-arrival routing (#6 Stage 1)
+
+extension RailTools {
+
+    /// Build the TRA timetable graph (DailyTrainTimetable OD), apply live train
+    /// delays (TrainLiveBoard), and return the live-adjusted earliest-arrival
+    /// itinerary. Both data sources arrive wrapped; `TDXDecode.list` unwraps them.
+    /// Graceful: timetable unavailable → empty + note; live board unavailable →
+    /// all legs scheduled. Empty ≠ error.
+    static func executeRoute(arguments: [String: Value], client: TDXClient, cache: Cache) async throws -> CallTool.Result {
+        guard let from = arguments["from"]?.stringValue, !from.isEmpty else {
+            throw TDXError.decoding("Missing required parameter: from")
+        }
+        guard let to = arguments["to"]?.stringValue, !to.isEmpty else {
+            throw TDXError.decoding("Missing required parameter: to")
+        }
+        if let sysCode = arguments["system"]?.stringValue, sysCode != "TRA" {
+            throw TDXError.decoding("rail_route 目前僅支援 TRA（唯一同時有時刻表與即時誤點的系統）；其他系統規劃中")
+        }
+
+        let departAfterMin: Int = {
+            if let s = arguments["depart_after"]?.stringValue, let m = TimetableRouter.minutesOfDay(s) { return m }
+            return nowMinutesTaipei()
+        }()
+        let departAfter = TimetableRouter.clock(departAfterMin)
+        let date = dateFormatter.string(from: Date())
+
+        // Timetable (static, 1h cache). Graceful on TDX failure — empty + note.
+        let trains: [RailODFare]
+        do {
+            let odData = try await client.fetch(
+                path: TDXEndpoints.railTimetableOD(.TRA, from: from, to: to, date: date),
+                cacheTTL: 3600, cache: cache)
+            trains = TDXDecode.list(RailODFare.self, from: odData)
+        } catch {
+            return routeResult(["from": from, "to": to, "system": "TRA", "depart_after": departAfter,
+                                "legs": [[String: Any]](),
+                                "note": "TRA 時刻表暫時無法取得（TDX 端問題）：\(error.localizedDescription)"])
+        }
+        if trains.isEmpty {
+            return routeResult(["from": from, "to": to, "system": "TRA", "depart_after": departAfter,
+                                "legs": [[String: Any]](),
+                                "note": "查無 \(from) → \(to) 的當日 TRA 班次"])
+        }
+
+        // Live delays (live, no cache). Graceful: unavailable → empty → all scheduled.
+        var delays: [String: Int] = [:]
+        if let lbData = try? await client.fetch(path: TDXEndpoints.railTrainLiveBoard(), cacheTTL: 0, cache: cache) {
+            for t in TDXDecode.list(RailLiveTrain.self, from: lbData) {
+                if let d = t.delayTime { delays[t.trainNo] = d }
+            }
+        }
+
+        let conns = TimetableRouter.connections(from: trains, delays: delays)
+        guard let itinerary = TimetableRouter.earliestArrival(
+            connections: conns, from: from, to: to, departAfterMin: departAfterMin) else {
+            return routeResult(["from": from, "to": to, "system": "TRA", "depart_after": departAfter,
+                                "legs": [[String: Any]](),
+                                "note": "\(departAfter) 之後查無可達 \(to) 的班次"])
+        }
+
+        let legs: [[String: Any]] = itinerary.legs.map { leg in
+            ["train_no": leg.trainNo,
+             "from_station_id": leg.fromStation, "from_name": leg.fromName,
+             "to_station_id": leg.toStation, "to_name": leg.toName,
+             "dep_time": TimetableRouter.clock(leg.depMin),
+             "arr_time": TimetableRouter.clock(leg.arrMin),
+             "delay_min": leg.delayMin,
+             "source": leg.live ? "live" : "scheduled"]
+        }
+        let boardMin = itinerary.legs.first?.depMin ?? departAfterMin
+        return routeResult([
+            "from": from, "to": to, "system": "TRA", "depart_after": departAfter,
+            "arrival_time": TimetableRouter.clock(itinerary.arrMin),
+            "duration_min": itinerary.arrMin - boardMin,
+            "transfer_count": max(0, itinerary.legs.count - 1),
+            "legs": legs
+        ])
+    }
+
+    private static func nowMinutesTaipei() -> Int {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Taipei")!
+        return cal.component(.hour, from: Date()) * 60 + cal.component(.minute, from: Date())
+    }
+
+    private static func routeResult(_ payload: [String: Any]) -> CallTool.Result {
+        let data = (try? JSONSerialization.data(withJSONObject: JSONSanitize.clean(payload))) ?? Data("{}".utf8)
+        let text = String(data: data, encoding: .utf8) ?? "{}"
+        return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)])
     }
 }

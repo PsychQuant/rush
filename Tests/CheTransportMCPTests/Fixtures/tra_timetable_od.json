@@ -1,0 +1,26 @@
+{
+  "TrainDate": "2026-06-01",
+  "TrainTimetables": [
+    {
+      "TrainInfo": { "TrainNo": "100", "TrainTypeName": { "Zh_tw": "自強", "En": "Tze-Chiang" } },
+      "StopTimes": [
+        { "StopSequence": 1, "StationID": "1000", "StationName": { "Zh_tw": "臺北", "En": "Taipei" }, "ArrivalTime": "08:00", "DepartureTime": "08:00" },
+        { "StopSequence": 2, "StationID": "3300", "StationName": { "Zh_tw": "臺中", "En": "Taichung" }, "ArrivalTime": "09:00", "DepartureTime": "09:00" }
+      ]
+    },
+    {
+      "TrainInfo": { "TrainNo": "200", "TrainTypeName": { "Zh_tw": "莒光", "En": "Chu-Kuang" } },
+      "StopTimes": [
+        { "StopSequence": 1, "StationID": "1000", "StationName": { "Zh_tw": "臺北", "En": "Taipei" }, "ArrivalTime": "08:10", "DepartureTime": "08:10" },
+        { "StopSequence": 2, "StationID": "3300", "StationName": { "Zh_tw": "臺中", "En": "Taichung" }, "ArrivalTime": "09:05", "DepartureTime": "09:05" }
+      ]
+    },
+    {
+      "TrainInfo": { "TrainNo": "300", "TrainTypeName": { "Zh_tw": "區間", "En": "Local" } },
+      "StopTimes": [
+        { "StopSequence": 1, "StationID": "1000", "StationName": { "Zh_tw": "臺北", "En": "Taipei" }, "ArrivalTime": "07:30", "DepartureTime": "07:30" },
+        { "StopSequence": 2, "StationID": "3300", "StationName": { "Zh_tw": "臺中", "En": "Taichung" }, "ArrivalTime": "08:55", "DepartureTime": "08:55" }
+      ]
+    }
+  ]
+}

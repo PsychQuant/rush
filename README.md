@@ -6,7 +6,7 @@ A Model Context Protocol server providing real-time Taiwan transport queries via
 
 ## Status
 
-**v0.2-dev** — 22 tools across 6 transport modes (Rail / Bus / Bike / Air / Traffic / Parking)
+**v0.2-dev** — 23 tools across 6 transport modes (Rail / Bus / Bike / Air / Traffic / Parking)
 
 Roadmap:
 - v0.1: Rail ✅ (5 tools)
@@ -28,7 +28,7 @@ Register a free TDX account first at <https://tdx.transportdata.tw/register>.
 
 ## Tools
 
-### Rail (6)
+### Rail (7)
 
 | Tool | Purpose |
 |------|---------|
@@ -38,6 +38,7 @@ Register a free TDX account first at <https://tdx.transportdata.tw/register>.
 | `rail_status_train` | Live train status (delay, position) |
 | `rail_status_station` | Live station board |
 | `metro_find_route` | Metro O/D routing incl. cross-line transfers — shortest path over the station network as `legs[]` (per line ridden) + `transfers[]` (per line change, with walk + estimated wait) + `transfer_count` + total travel time (direct = 0-transfer path) |
+| `rail_route` | TRA time-dependent O/D routing — real-timetable earliest arrival, live-adjusted for delays (legs + arrival_time + duration); TRA only |
 
 ### Bus (5)
 
@@ -84,7 +85,7 @@ City is **required** for all Bus tools — 22 BusCity codes (`Taipei`, `NewTaipe
 
 ## Architecture
 
-- **Read-only**: all 22 tools are GET-only against TDX. No execution risk.
+- **Read-only**: all 23 tools are GET-only against TDX. No execution risk.
 - **Cache TTL tiers**: 24h static (stations / routes / lots / CCTV) · 1h timetables · 5-10 min news · 0s live (ETAs, positions, FIDS, parking availability).
 - **Rate limit**: TDX free tier is 50/min. 429 triggers a single 1s retry.
 - **Empty ≠ error**: empty result sets return normally; errors are system-level only.

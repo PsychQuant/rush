@@ -1,0 +1,6 @@
+{
+  "TrainLiveBoards": [
+    { "TrainNo": "100", "StationID": "1000", "DelayTime": 15 },
+    { "TrainNo": "200", "StationID": "1000", "DelayTime": 0 }
+  ]
+}
