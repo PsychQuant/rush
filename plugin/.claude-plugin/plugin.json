@@ -1,7 +1,7 @@
 {
   "name": "che-transport-mcp",
-  "version": "0.10.0",
-  "binaryVersion": "0.10.0",
+  "version": "0.11.0",
+  "binaryVersion": "0.11.0",
   "description": "Taiwan TDX transport MCP — 25 tools across Rail / Bus / Bike / Air / Traffic / Parking, incl. transit_route (TRA↔Taipei-Metro multi-modal) + bus_route (direct-route bus, live A2 board ETA + honest timetable arrival) + rail_route (TRA time-dependent) + metro_find_route. Wraps PsychQuant/che-transport-mcp binary with version-aware auto-download (release-pinned + sha256 sidecar), 3-tier cache TTL, parallel cross-system station search, NSQL confirmation discipline. Built-in --setup (delegates to che-keychain native dialog when installed).",
   "author": {
     "name": "Che Cheng"

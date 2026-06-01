@@ -45,13 +45,13 @@ This file is read by LLM agents (Claude Code, Codex, etc.) that use this MCP ser
 
 - **Stage 1**（已出貨 v0.6.0）：`rail_route` — TRA 時刻表 time-dependent 最早抵達 + 即時誤點調整。
 - **Stage 2**（已出貨 v0.7.0）：`transit_route` — TRA↔台北捷運多模式路由，scoped 到策劃式 interchange registry；捷運段 expected-wait。
-- **Stage 3**（進行中）：公車 + 更完整 live feed + 統一多模式核心。**3a（已實作 v0.8.0）**：`bus_route` 市內公車直達路由（A2 即時上車預估 + 班表抵達／誠實從缺）。**3b-i（已實作 v0.9.0）**：`rail_bus_route` rail→bus 顯式轉乘多模式路由——鐵路段沿用 transit_route 引擎到 transfer 站，於該站以站名比對（`捷運X站`／`X車站`，非裸字串以免行政區 over-match）找公車上車站，公車段以「抵達 transfer + 步行」為錨點（A2 停用：now-snapshot 無法計未來上車，故 schedule／headway 計時，班表抵達或誠實從缺）。**3b-ii（已實作 v0.10.0）**：`rail_bus_route` 的 `transfer` 改為**選填**——省略時自動選交會站：以 `to_stop` 為錨反向搜尋（serving `to_stop` 的公車路線上游站名稱比對鐵路站），對候選交會站跑 rail+bus 取最早抵達，回 `auto_selected_transfer`；候選有上限（預設 8），超過於 note 揭露捨棄數。**3c（未來，緩議）**：bus→rail、多段轉乘、統一 RAPTOR 核心。
+- **Stage 3**（進行中）：公車 + 更完整 live feed + 統一多模式核心。**3a（已實作 v0.8.0）**：`bus_route` 市內公車直達路由（A2 即時上車預估 + 班表抵達／誠實從缺）。**3b-i（已實作 v0.9.0）**：`rail_bus_route` rail→bus 顯式轉乘多模式路由——鐵路段沿用 transit_route 引擎到 transfer 站，於該站以站名比對（`捷運X站`／`X車站`，非裸字串以免行政區 over-match）找公車上車站，公車段以「抵達 transfer + 步行」為錨點（A2 停用：now-snapshot 無法計未來上車，故 schedule／headway 計時，班表抵達或誠實從缺）。**3b-ii（已實作 v0.10.0）**：`rail_bus_route` 的 `transfer` 改為**選填**——省略時自動選交會站：以 `to_stop` 為錨反向搜尋（serving `to_stop` 的公車路線上游站名稱比對鐵路站），對候選交會站跑 rail+bus 取最早抵達，回 `auto_selected_transfer`；候選有上限（預設 8），超過於 note 揭露捨棄數。**3c-i（已實作 v0.11.0）**：`bus_rail_route` bus→rail 多模式路由（rail_bus_route 的鏡像）——公車 leg 1 上車在旅程起點故 **A2 即時可用**（`source: live`）；以 `from_stop` 為錨正向搜尋下游站名稱比對找下車鐵路站（transfer 選填／自動），鐵路段用 transit_route 引擎以「公車抵達 + 步行」錨定；公車抵達未知（frequency-only）時改以上車+步行錨定 rail 並加近似 note。**3c-ii（未來，緩議）**：multi-transfer、統一 RAPTOR 核心——依需求驅動而非完整性（TDX 資料形態而非演算法是準度上限）。
 
 ## What this MCP does
 
-Provides 26 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
+Provides 27 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
 
-Current build covers **all 26 tools across 6 modes**. Per-module tool catalogue below.
+Current build covers **all 27 tools across 6 modes**. Per-module tool catalogue below.
 
 > **Maritime (航運/渡輪) is not covered.** TDX no longer serves it on the unified API (every `v2`/`v3` `Maritime`/`Ship` path 404s) and the legacy PTX `Ship` API is decommissioned (403 regardless of auth). The contract suite confirmed there is no callable maritime endpoint, so those tools were removed rather than ship broken. See PsychQuant/che-transport-mcp#4.
 
@@ -103,7 +103,7 @@ CheTransportMCP --setup
 
 `--setup` prompts for TDX `client_id` / `client_secret`（register at <https://tdx.transportdata.tw/register>），writes them to the macOS keychain under service `che-transport-tdx`, and verifies with a live OAuth round-trip. The secret prompt uses `getpass` so it never echoes.
 
-## Tools (26 total across 6 modes)
+## Tools (27 total across 6 modes)
 
 ### Rail (7)
 - `rail_list_systems()` — 列出 8 個支援 system
@@ -115,9 +115,10 @@ CheTransportMCP --setup
 - `metro_find_route(from, to, system)` — 捷運 O/D 路線（含跨線轉乘）：建站網圖跑最短路徑，回 routes[]，每條含 legs（每段線+時間+班距）+ transfers（換乘站+步行+估計等車）+ transfer_count + 總時間。直達 = 0 transfer。
 - `rail_route(from, to, depart_after?, system)` — TRA 時刻表 time-dependent 最早抵達路由：套用 TrainLiveBoard 即時誤點調整（誤點班次可能被較晚但實際更早到的車取代），回 legs（車次/起訖/開到時刻/誤點/source）+ arrival_time + duration_min。僅 TRA；與 rail_find_trains（列班次）不同。
 
-### Multi-modal (2) — Stage 2–3b of the (B) routing engine
+### Multi-modal (3) — Stage 2–3c of the (B) routing engine
 - `transit_route(from, to, depart_after?)` — TRA↔台北捷運（TRTC）多模式最早抵達路由。time-anchored 組合：TRA 段用時刻表 + 即時誤點（`source: live`），捷運段用班距期望等車 `E[wait]=headway/2`（`source: frequency`，TDX 捷運無 per-vehicle phase 故無 live）。跨系統轉乘僅限策劃的 interchange registry（台北車站/板橋/南港/松山）。回 legs（每段 mode + 起訖 + 時刻 + source）+ transfers（交會站 + walk_min）+ arrival_time + duration_min + transfer_count。站名多系統同名 → 回 `matches` 釐清；查無路徑 → `routes:[] + note`（empty ≠ error）。僅 TRA + TRTC；公車／其他捷運／THSR 不在此 stage。
-- `rail_bus_route(from, to_stop, city, transfer?, depart_after?)` — **rail→公車**多模式路由（Stage 3b）。`transfer` **選填**：給定時走該站轉乘（3b-i）；省略時自動選交會站（3b-ii）——以 `to_stop` 為錨反向搜尋（serving `to_stop` 的公車路線，對 `to_stop` 上游站做站名比對找鐵路站），對候選交會站跑 rail+bus 取最早抵達，輸出 `auto_selected_transfer` 標示選中站；候選有上限（`maxAutoHubCandidates`=8，依離 `to_stop` 接近度取前 N），超過於 `auto_hub_note` 揭露捨棄數。鐵路段沿用 `transit_route` 引擎（`source: live/scheduled/frequency`）；站名比對 `捷運X站`／`X車站`／`X火車站`，正規化 `臺`↔`台`，**非裸字串**以免行政區 over-match（`南港` 接受 `南港車站` 但拒 `南港高工`）。公車段以「抵達 transfer + 步行（估計 5 分）」為發車錨點——**A2 即時停用**（now-snapshot 無法計未來上車），改用班表發車（`source: scheduled`）／班距期望（`source: frequency`），班表抵達 `source: scheduled`、frequency-only 抵達從缺 + note。回 legs（鐵路各段 + 一段 Bus）+ transfers（transfer 站 + walk_min，步行為估計值）+ arrival_time + duration_min + transfer_count(=1)。站名多筆同名 → `matches`；鐵路不可達／無對應上車站／無直達 → `routes:[] + note`（empty ≠ error）。僅 rail→bus 單轉乘、TRA+TRTC 鐵路段；bus→rail／多段為 3c。
+- `rail_bus_route(from, to_stop, city, transfer?, depart_after?)` — **rail→公車**多模式路由（Stage 3b）。`transfer` **選填**：給定時走該站轉乘（3b-i）；省略時自動選交會站（3b-ii）——以 `to_stop` 為錨反向搜尋（serving `to_stop` 的公車路線，對 `to_stop` 上游站做站名比對找鐵路站），對候選交會站跑 rail+bus 取最早抵達，輸出 `auto_selected_transfer` 標示選中站；候選有上限（`maxAutoHubCandidates`=8，依離 `to_stop` 接近度取前 N），超過於 `auto_hub_note` 揭露捨棄數。鐵路段沿用 `transit_route` 引擎（`source: live/scheduled/frequency`）；站名比對 `捷運X站`／`X車站`／`X火車站`，正規化 `臺`↔`台`，**非裸字串**以免行政區 over-match（`南港` 接受 `南港車站` 但拒 `南港高工`）。公車段以「抵達 transfer + 步行（估計 5 分）」為發車錨點——**A2 即時停用**（now-snapshot 無法計未來上車），改用班表發車（`source: scheduled`）／班距期望（`source: frequency`），班表抵達 `source: scheduled`、frequency-only 抵達從缺 + note。回 legs（鐵路各段 + 一段 Bus）+ transfers（transfer 站 + walk_min，步行為估計值）+ arrival_time + duration_min + transfer_count(=1)。站名多筆同名 → `matches`；鐵路不可達／無對應上車站／無直達 → `routes:[] + note`（empty ≠ error）。僅 rail→bus 單轉乘、TRA+TRTC 鐵路段；bus→rail 見 `bus_rail_route`；多段為 3c-ii。
+- `bus_rail_route(from_stop, to, city, transfer?, depart_after?)` — **公車→鐵路**多模式路由（Stage 3c-i，`rail_bus_route` 的鏡像）。公車段為 leg 1、上車在旅程起點故 **A2 即時可用**（`source: live`；無則班表 `source: scheduled`／班距 `source: frequency`）。`transfer` **選填**：給定時於該站下車；省略時自動選下車站——以 `from_stop` 為錨**正向**搜尋（serving `from_stop` 的公車路線，對 `from_stop` **下游**站做站名比對找鐵路站），對候選下車站跑 bus+rail 取最早 rail 抵達，輸出 `auto_selected_transfer`；候選上限同 3b-ii（8，依離 `from_stop` 接近度），超過於 `auto_hub_note` 揭露捨棄數。鐵路段用 `transit_route` 引擎，以「公車抵達交會站 + 步行」為 `departAfter`；**公車抵達未知（frequency-only）時改以上車時刻 + 步行錨定 rail 並加 `approx_note`，不假裝精確**。回 legs（一段 Bus + 鐵路各段）+ transfers（交會站 + walk_min，步行為估計值）+ arrival_time（rail 抵達）+ duration_min + transfer_count(=1)。`from_stop`／`to` 多筆同名 → `matches`；無對應下車站／rail 不可達／無直達 → `routes:[] + note`（empty ≠ error）。僅 bus→rail 單轉乘、TRA+TRTC 鐵路段；multi-transfer／RAPTOR 為 3c-ii。
 
 ### Bus (6) — city 必填
 - `bus_search_routes(query, city)` — 路線模糊搜尋

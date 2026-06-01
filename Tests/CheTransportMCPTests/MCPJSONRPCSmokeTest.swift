@@ -8,7 +8,7 @@ import XCTest
 /// tools/list), then verifies:
 ///   1. The server identifies itself as "che-transport-mcp" with the
 ///      expected version.
-///   2. tools/list returns **exactly 26** tools.
+///   2. tools/list returns **exactly 27** tools.
 ///   3. Per-prefix counts match the design spec
 ///      (rail=6, metro=1, bus=5, bike=3, air=3, traffic=3, parking=2).
 ///   4. Every tool entry has a non-empty `name`, `description`, and
@@ -116,8 +116,8 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
         guard let tools = toolsResult["tools"] as? [[String: Any]] else {
             return XCTFail("tools/list result missing `tools` array. Result was: \(toolsResult)")
         }
-        XCTAssertEqual(tools.count, 26,
-                       "expected 26 tools, got \(tools.count). Names: \(tools.compactMap { $0["name"] as? String })")
+        XCTAssertEqual(tools.count, 27,
+                       "expected 27 tools, got \(tools.count). Names: \(tools.compactMap { $0["name"] as? String })")
 
         // 3. Per-prefix counts match the design spec
         let names = tools.compactMap { $0["name"] as? String }
@@ -125,7 +125,7 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
             ("rail_",     7),   // +rail_bus_route (Stage 3b)
             ("metro_",    1),
             ("transit_",  1),
-            ("bus_",      6),
+            ("bus_",      7),   // +bus_rail_route (Stage 3c-i)
             ("bike_",     3),
             ("air_",      3),
             ("traffic_",  3),
@@ -149,6 +149,20 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
                           "rail_bus_route must still require from/to_stop/city, got \(required)")
         } else {
             XCTFail("rail_bus_route inputSchema.required not found")
+        }
+
+        // 3c. bus_rail_route present (Stage 3c-i) with `transfer` optional, from_stop/to/city required.
+        XCTAssertTrue(names.contains("bus_rail_route"),
+                      "bus_rail_route (Stage 3c-i) missing from tools/list")
+        if let brr = tools.first(where: { $0["name"] as? String == "bus_rail_route" }),
+           let schema = brr["inputSchema"] as? [String: Any],
+           let required = schema["required"] as? [String] {
+            XCTAssertFalse(required.contains("transfer"),
+                           "bus_rail_route `transfer` must be optional (auto-hub), got required=\(required)")
+            XCTAssertTrue(["from_stop", "to", "city"].allSatisfy(required.contains),
+                          "bus_rail_route must require from_stop/to/city, got \(required)")
+        } else {
+            XCTFail("bus_rail_route inputSchema.required not found")
         }
 
         // 4. Every tool has the required schema fields
@@ -192,7 +206,7 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
             // simply wait for the next chunk to complete it.
             if let text = String(data: collected, encoding: .utf8) {
                 // Count an id "seen" only once its FULL newline-terminated line has
-                // arrived. A large tools/list response (26 tools, long descriptions)
+                // arrived. A large tools/list response (27 tools, long descriptions)
                 // streams across several chunks; breaking on the first `"id":2`
                 // substring truncates the JSON mid-object and parsing then fails.
                 var lines = text.split(separator: "\n", omittingEmptySubsequences: true)
