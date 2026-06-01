@@ -1,7 +1,7 @@
 {
   "name": "che-transport-mcp",
-  "version": "0.3.0",
-  "binaryVersion": "0.3.0",
+  "version": "0.7.0",
+  "binaryVersion": "0.7.0",
   "description": "Taiwan TDX transport MCP — 21 tools across Rail / Bus / Bike / Air / Traffic / Parking. Wraps PsychQuant/che-transport-mcp binary with version-aware auto-download (release-pinned + sha256 sidecar), 3-tier cache TTL (24h static / 1h timetable / 0s live), parallel cross-system station search, NSQL confirmation discipline for ambiguous queries. v0.2.3: soft dependency on PsychQuant/che-keychain — when installed, setup-tdx skill invokes it directly for a native NSAlert (id + secret in one dialog), no Terminal window needed. Binary v0.2.3 also auto-delegates --setup to che-keychain if present. Falls back to in-binary getpass otherwise.",
   "author": {
     "name": "Che Cheng"
