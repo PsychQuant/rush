@@ -45,13 +45,13 @@ This file is read by LLM agents (Claude Code, Codex, etc.) that use this MCP ser
 
 - **Stage 1**（已出貨 v0.6.0）：`rail_route` — TRA 時刻表 time-dependent 最早抵達 + 即時誤點調整。
 - **Stage 2**（已出貨 v0.7.0）：`transit_route` — TRA↔台北捷運多模式路由，scoped 到策劃式 interchange registry；捷運段 expected-wait。
-- **Stage 3**（進行中）：公車 + 更完整 live feed + 統一多模式核心。**3a（已實作）**：`bus_route` 市內公車直達路由（A2 即時上車預估 + 班表抵達／誠實從缺）。3b：bus↔rail 多模式 + 轉乘。3c：統一 RAPTOR 核心（緩議）。
+- **Stage 3**（進行中）：公車 + 更完整 live feed + 統一多模式核心。**3a（已實作 v0.8.0）**：`bus_route` 市內公車直達路由（A2 即時上車預估 + 班表抵達／誠實從缺）。**3b-i（已實作 v0.9.0）**：`rail_bus_route` rail→bus 顯式轉乘多模式路由——鐵路段沿用 transit_route 引擎到 transfer 站，於該站以站名比對（`捷運X站`／`X車站`，非裸字串以免行政區 over-match）找公車上車站，公車段以「抵達 transfer + 步行」為錨點（A2 停用：now-snapshot 無法計未來上車，故 schedule／headway 計時，班表抵達或誠實從缺）。**3b-ii（未來）**：自動選轉乘站／bus→rail／多段轉乘。3c：統一 RAPTOR 核心（緩議）。
 
 ## What this MCP does
 
-Provides 25 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
+Provides 26 tools over the [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) covering 6 transport modes in Taiwan: Rail (TRA / THSR / 各捷運與輕軌), Bus, Bike (YouBike), Air, Traffic, Parking.
 
-Current build covers **all 25 tools across 6 modes**. Per-module tool catalogue below.
+Current build covers **all 26 tools across 6 modes**. Per-module tool catalogue below.
 
 > **Maritime (航運/渡輪) is not covered.** TDX no longer serves it on the unified API (every `v2`/`v3` `Maritime`/`Ship` path 404s) and the legacy PTX `Ship` API is decommissioned (403 regardless of auth). The contract suite confirmed there is no callable maritime endpoint, so those tools were removed rather than ship broken. See PsychQuant/che-transport-mcp#4.
 
@@ -103,7 +103,7 @@ CheTransportMCP --setup
 
 `--setup` prompts for TDX `client_id` / `client_secret`（register at <https://tdx.transportdata.tw/register>），writes them to the macOS keychain under service `che-transport-tdx`, and verifies with a live OAuth round-trip. The secret prompt uses `getpass` so it never echoes.
 
-## Tools (25 total across 6 modes)
+## Tools (26 total across 6 modes)
 
 ### Rail (7)
 - `rail_list_systems()` — 列出 8 個支援 system
@@ -115,8 +115,9 @@ CheTransportMCP --setup
 - `metro_find_route(from, to, system)` — 捷運 O/D 路線（含跨線轉乘）：建站網圖跑最短路徑，回 routes[]，每條含 legs（每段線+時間+班距）+ transfers（換乘站+步行+估計等車）+ transfer_count + 總時間。直達 = 0 transfer。
 - `rail_route(from, to, depart_after?, system)` — TRA 時刻表 time-dependent 最早抵達路由：套用 TrainLiveBoard 即時誤點調整（誤點班次可能被較晚但實際更早到的車取代），回 legs（車次/起訖/開到時刻/誤點/source）+ arrival_time + duration_min。僅 TRA；與 rail_find_trains（列班次）不同。
 
-### Multi-modal (1) — Stage 2 of the (B) routing engine
+### Multi-modal (2) — Stage 2–3b of the (B) routing engine
 - `transit_route(from, to, depart_after?)` — TRA↔台北捷運（TRTC）多模式最早抵達路由。time-anchored 組合：TRA 段用時刻表 + 即時誤點（`source: live`），捷運段用班距期望等車 `E[wait]=headway/2`（`source: frequency`，TDX 捷運無 per-vehicle phase 故無 live）。跨系統轉乘僅限策劃的 interchange registry（台北車站/板橋/南港/松山）。回 legs（每段 mode + 起訖 + 時刻 + source）+ transfers（交會站 + walk_min）+ arrival_time + duration_min + transfer_count。站名多系統同名 → 回 `matches` 釐清；查無路徑 → `routes:[] + note`（empty ≠ error）。僅 TRA + TRTC；公車／其他捷運／THSR 不在此 stage。
+- `rail_bus_route(from, transfer, to_stop, city, depart_after?)` — **rail→公車**多模式路由（Stage 3b-i；轉乘站需明確指定）。鐵路段（from→transfer）沿用 `transit_route` 引擎（`source: live/scheduled/frequency`）；於 transfer 站以站名比對（`捷運X站`／`X車站`／`X火車站`，正規化 `臺`↔`台`，**非裸字串**以免站名為行政區時 over-match，如 `南港` 接受 `南港車站` 但拒 `南港高工`）找出公車上車站；公車段以「抵達 transfer + 步行（估計 5 分）」為發車錨點算直達 `to_stop` 的班次——**A2 即時停用**（now-snapshot 無法計未來上車），改用班表發車（`source: scheduled`）／班距期望（`source: frequency`），班表抵達 `source: scheduled`、frequency-only 抵達從缺 + note。回 legs（鐵路各段 + 一段 Bus）+ transfers（transfer 站 + walk_min，步行為估計值）+ arrival_time + duration_min + transfer_count(=1)。from/transfer/to_stop 多筆同名 → `matches`；鐵路不可達／transfer 無對應上車站／無直達 → `routes:[] + note`（empty ≠ error）。僅 rail→bus 單轉乘、TRA+TRTC 鐵路段；自動選轉乘站／bus→rail／多段為 3b-ii。
 
 ### Bus (6) — city 必填
 - `bus_search_routes(query, city)` — 路線模糊搜尋

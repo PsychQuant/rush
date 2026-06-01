@@ -2,9 +2,9 @@
   "manifest_version": "0.3",
   "name": "che-transport-mcp",
   "display_name": "Taiwan Transport (TDX)",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Real-time Taiwan transport queries via TDX — rail, bus, bike, air, traffic, parking",
-  "long_description": "23 MCP tools covering Taiwan's public-transport data across 6 modes: Rail (TRA / THSR / 6 metros), Bus (22 cities), Bike (YouBike 1.0 + 2.0), Air (FIDS), Traffic (freeway live + incidents + CCTV), and Parking (off-street). Backed by the TDX 運輸資料流通服務 API (free tier, 50 req/min). Read-only — no execution risk. Requires a free TDX account; run `make setup-tdx` after install.",
+  "long_description": "26 MCP tools covering Taiwan's public-transport data across 6 modes: Rail (TRA / THSR / 6 metros), Bus (22 cities), Bike (YouBike 1.0 + 2.0), Air (FIDS), Traffic (freeway live + incidents + CCTV), and Parking (off-street). Backed by the TDX 運輸資料流通服務 API (free tier, 50 req/min). Read-only — no execution risk. Requires a free TDX account; run `make setup-tdx` after install.",
   "author": {
     "name": "Che Cheng",
     "url": "https://github.com/kiki830621"
@@ -64,6 +64,10 @@
     {
       "name": "transit_route",
       "description": "Multi-modal TRA↔Taipei-Metro time-dependent earliest-arrival routing (Stage 2). TRA legs use the timetable + live delay (source: live); metro legs use expected-wait headway/2 (source: frequency). Cross-system transfers only at curated interchanges (台北車站/板橋/南港/松山). Returns legs + transfers + arrival_time + duration_min + transfer_count; ambiguous endpoint → matches; no route → empty routes + note."
+    },
+    {
+      "name": "rail_bus_route",
+      "description": "Rail→bus multi-modal routing with an EXPLICIT transfer station (Stage 3b). Rail leg reuses the TRA↔Taipei-Metro engine to the transfer; the boarding bus stop is found by name-match (捷運X站/X車站) at that station; the bus leg boards at rail-arrival+walk with A2 disabled (a now-snapshot can't time a future board) — board from schedule/headway, arrival timetabled or omitted+note. Returns legs (rail + one bus) + transfers (transfer + walk_min, estimated) + arrival_time + duration_min + transfer_count(=1); ambiguous endpoint → matches; rail unreachable / no qualifying stop / no direct bus → empty routes + note. Auto-hub-selection, bus→rail, and multi-transfer are future work (3b-ii)."
     },
     {
       "name": "metro_find_route",

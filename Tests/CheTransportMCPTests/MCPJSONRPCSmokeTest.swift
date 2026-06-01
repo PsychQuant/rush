@@ -8,7 +8,7 @@ import XCTest
 /// tools/list), then verifies:
 ///   1. The server identifies itself as "che-transport-mcp" with the
 ///      expected version.
-///   2. tools/list returns **exactly 25** tools.
+///   2. tools/list returns **exactly 26** tools.
 ///   3. Per-prefix counts match the design spec
 ///      (rail=6, metro=1, bus=5, bike=3, air=3, traffic=3, parking=2).
 ///   4. Every tool entry has a non-empty `name`, `description`, and
@@ -116,13 +116,13 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
         guard let tools = toolsResult["tools"] as? [[String: Any]] else {
             return XCTFail("tools/list result missing `tools` array. Result was: \(toolsResult)")
         }
-        XCTAssertEqual(tools.count, 25,
-                       "expected 25 tools, got \(tools.count). Names: \(tools.compactMap { $0["name"] as? String })")
+        XCTAssertEqual(tools.count, 26,
+                       "expected 26 tools, got \(tools.count). Names: \(tools.compactMap { $0["name"] as? String })")
 
         // 3. Per-prefix counts match the design spec
         let names = tools.compactMap { $0["name"] as? String }
         let expectedPrefixCounts: [(String, Int)] = [
-            ("rail_",     6),
+            ("rail_",     7),   // +rail_bus_route (Stage 3b)
             ("metro_",    1),
             ("transit_",  1),
             ("bus_",      6),
@@ -136,6 +136,8 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
             XCTAssertEqual(actual, expected,
                            "expected \(expected) tools with prefix `\(prefix)`, got \(actual)")
         }
+        XCTAssertTrue(names.contains("rail_bus_route"),
+                      "rail_bus_route (Stage 3b) missing from tools/list")
 
         // 4. Every tool has the required schema fields
         for tool in tools {
@@ -178,7 +180,7 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
             // simply wait for the next chunk to complete it.
             if let text = String(data: collected, encoding: .utf8) {
                 // Count an id "seen" only once its FULL newline-terminated line has
-                // arrived. A large tools/list response (25 tools, long descriptions)
+                // arrived. A large tools/list response (26 tools, long descriptions)
                 // streams across several chunks; breaking on the first `"id":2`
                 // substring truncates the JSON mid-object and parsing then fails.
                 var lines = text.split(separator: "\n", omittingEmptySubsequences: true)
