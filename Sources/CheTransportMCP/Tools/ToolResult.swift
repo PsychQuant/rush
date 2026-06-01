@@ -4,9 +4,10 @@ import MCP
 
 /// Single serialization point for every tool's JSON response.
 ///
-/// Previously each tool module carried its own byte-identical `jsonResult` /
-/// `resultJSON` / `routeResult` helper (plus two inline copies in `RailTools`),
-/// so wiring `JSONSanitize.clean` into the path in #1 meant editing eight places.
+/// Previously each tool module carried its own byte-identical serialization
+/// helper (`jsonResult` ×5, `MetroTools.resultJSON`, `RailTools.routeResult`),
+/// plus two inline copies in `RailTools` — so wiring `JSONSanitize.clean` into
+/// the path (#1) meant repeating the same edit across every one of them.
 /// Centralizing here keeps the sanitize call in exactly one location.
 enum ToolResult {
     /// Serialize `obj` to a JSON `CallTool.Result`, running it through
