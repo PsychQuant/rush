@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] — 2026-06-01
+
+### Fixed
+- **Security**: `minutesOfDay` (`TimetableRouter` + `MetroTools`) now bounds the HH/mm components before the multiply, preventing an integer-overflow trap (crash / DoS) on malformed input — `rail_route`'s caller-supplied `depart_after` was the exposed path (e.g. a multi-digit hour overflowed `h * 60` and Swift traps on overflow). The bound also validates the time. Flagged by automated security review of v0.6.0.
+
 ## [0.6.0] — 2026-06-01
 
 ### Added
