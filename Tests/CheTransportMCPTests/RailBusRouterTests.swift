@@ -85,4 +85,77 @@ final class RailBusRouterTests: XCTestCase {
         XCTAssertNil(RBR.compose(railLegs: [railLeg(arr: 600)], transferStationName: "市政府",
                                  transferWalkMin: 5, busOptions: [], nowMin: now))
     }
+
+    // MARK: - Stage 3b-ii: auto transfer-hub reverse search
+
+    /// Build a BusStopOfRoute from a route id + ordered (uid, name) stop list.
+    private func route(_ uid: String, dir: Int = 0, _ stops: [(String, String)]) -> BusStopOfRoute {
+        let stopsJSON = stops.map { #"{"StopUID":"\#($0.0)","StopName":{"Zh_tw":"\#($0.1)"}}"# }.joined(separator: ",")
+        let json = #"{"RouteUID":"\#(uid)","RouteName":{"Zh_tw":"\#(uid)"},"Direction":\#(dir),"Stops":[\#(stopsJSON)]}"#
+        return try! JSONDecoder().decode(BusStopOfRoute.self, from: Data(json.utf8))
+    }
+
+    private let rail: [(id: String, name: String)] = [
+        ("R1", "市政府"), ("R2", "忠孝復興"), ("R3", "南港"), ("R4", "松山")
+    ]
+
+    // (a) Only stops UPSTREAM of to_stop become candidates; downstream stops do not.
+    func testCandidateHubsUpstreamOnly() {
+        let r = route("299", [("M1", "捷運市政府站"), ("D1", "迄站"), ("F1", "捷運忠孝復興站")])
+        let d = RBR.candidateHubs(toStopUID: "D1", routes: [r], railStations: rail)
+        XCTAssertEqual(d.hubs.count, 1)
+        XCTAssertEqual(d.hubs.first?.railStationName, "市政府")          // upstream M1
+        XCTAssertFalse(d.hubs.contains { $0.railStationName == "忠孝復興" })  // downstream F1 excluded
+    }
+
+    // (b) District-name reject carries into the reverse search.
+    func testCandidateHubsDistrictReject() {
+        let r = route("市民小巴", [("G", "南港高工"), ("S", "南港行政中心(南港車站)"), ("D1", "迄站")])
+        let d = RBR.candidateHubs(toStopUID: "D1", routes: [r], railStations: rail)
+        XCTAssertEqual(d.hubs.count, 1)
+        XCTAssertEqual(d.hubs.first?.boardingStopUID, "S")   // 南港車站 ✓, 南港高工 ✗
+        XCTAssertEqual(d.hubs.first?.railStationName, "南港")
+    }
+
+    // (c) Same (hub, boarding stop) on two routes deduplicates to one candidate.
+    func testCandidateHubsDedup() {
+        let r1 = route("A", [("M1", "捷運市政府站"), ("D1", "迄站")])
+        let r2 = route("B", [("M1", "捷運市政府站"), ("X", "別站"), ("D1", "迄站")])
+        let d = RBR.candidateHubs(toStopUID: "D1", routes: [r1, r2], railStations: rail)
+        XCTAssertEqual(d.hubs.count, 1)
+        XCTAssertEqual(d.hubs.first?.boardingStopUID, "M1")
+    }
+
+    // (d) Cap truncates and reports the dropped count.
+    func testCandidateHubsCapDisclosesDropped() {
+        let r = route("multi", [("M1", "捷運市政府站"), ("M2", "捷運忠孝復興站"), ("M3", "南港車站"), ("D1", "迄站")])
+        let d = RBR.candidateHubs(toStopUID: "D1", routes: [r], railStations: rail, cap: 2)
+        XCTAssertEqual(d.hubs.count, 2)
+        XCTAssertEqual(d.droppedCount, 1)   // 3 distinct candidates, cap 2
+    }
+
+    // (e) Closest-upstream candidate is ordered first (smallest index gap to to_stop).
+    func testCandidateHubsProximityOrder() {
+        // 松山(idx0, gap3) … 忠孝復興(idx1, gap2) … 市政府(idx2, gap1) … 迄站(idx3)
+        let r = route("ord", [("F", "捷運松山站"), ("M", "捷運忠孝復興站"), ("N", "捷運市政府站"), ("D1", "迄站")])
+        let d = RBR.candidateHubs(toStopUID: "D1", routes: [r], railStations: rail)
+        XCTAssertEqual(d.hubs.first?.railStationName, "市政府")   // gap 1, closest
+        XCTAssertEqual(d.hubs.last?.railStationName, "松山")      // gap 3, farthest
+    }
+
+    // (f) selectEarliest picks min final arrival across stitched hubs; known before unknown.
+    func testSelectEarliestAcrossHubs() {
+        func result(arr: Int?, board: Int) -> RBR.Result {
+            RBR.Result(railLegs: [railLeg(arr: 600)], transferStationName: "X", transferWalkMin: 5,
+                       bus: busOpt(board: board - 540, arr: arr), busBoardClockMin: board,
+                       arrivalClockMin: arr)
+        }
+        let later = result(arr: 700, board: 650)
+        let early = result(arr: 660, board: 655)
+        let unknown = result(arr: nil, board: 610)
+        XCTAssertEqual(RBR.selectEarliest([later, early, unknown])?.arrivalClockMin, 660)
+        // known beats unknown even though unknown boards soonest.
+        XCTAssertEqual(RBR.selectEarliest([unknown, later])?.arrivalClockMin, 700)
+        XCTAssertNil(RBR.selectEarliest([]))
+    }
 }

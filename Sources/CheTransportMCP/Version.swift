@@ -2,7 +2,7 @@
 import Foundation
 
 enum AppVersion {
-    static let version = "0.9.0"
+    static let version = "0.10.0"
     static let versionString = "CheTransportMCP \(version)"
     static let helpMessage = """
     \(versionString)

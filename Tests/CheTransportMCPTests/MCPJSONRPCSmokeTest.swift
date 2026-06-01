@@ -139,6 +139,18 @@ final class MCPJSONRPCSmokeTest: XCTestCase {
         XCTAssertTrue(names.contains("rail_bus_route"),
                       "rail_bus_route (Stage 3b) missing from tools/list")
 
+        // 3b. rail_bus_route: `transfer` is optional (Stage 3b-ii auto-hub) — not in required.
+        if let rbr = tools.first(where: { $0["name"] as? String == "rail_bus_route" }),
+           let schema = rbr["inputSchema"] as? [String: Any],
+           let required = schema["required"] as? [String] {
+            XCTAssertFalse(required.contains("transfer"),
+                           "rail_bus_route `transfer` must be optional (auto-hub), got required=\(required)")
+            XCTAssertTrue(["from", "to_stop", "city"].allSatisfy(required.contains),
+                          "rail_bus_route must still require from/to_stop/city, got \(required)")
+        } else {
+            XCTFail("rail_bus_route inputSchema.required not found")
+        }
+
         // 4. Every tool has the required schema fields
         for tool in tools {
             let name = (tool["name"] as? String) ?? "(unnamed)"

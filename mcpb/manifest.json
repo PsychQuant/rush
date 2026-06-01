@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "che-transport-mcp",
   "display_name": "Taiwan Transport (TDX)",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Real-time Taiwan transport queries via TDX — rail, bus, bike, air, traffic, parking",
   "long_description": "26 MCP tools covering Taiwan's public-transport data across 6 modes: Rail (TRA / THSR / 6 metros), Bus (22 cities), Bike (YouBike 1.0 + 2.0), Air (FIDS), Traffic (freeway live + incidents + CCTV), and Parking (off-street). Backed by the TDX 運輸資料流通服務 API (free tier, 50 req/min). Read-only — no execution risk. Requires a free TDX account; run `make setup-tdx` after install.",
   "author": {
@@ -67,7 +67,7 @@
     },
     {
       "name": "rail_bus_route",
-      "description": "Rail→bus multi-modal routing with an EXPLICIT transfer station (Stage 3b). Rail leg reuses the TRA↔Taipei-Metro engine to the transfer; the boarding bus stop is found by name-match (捷運X站/X車站) at that station; the bus leg boards at rail-arrival+walk with A2 disabled (a now-snapshot can't time a future board) — board from schedule/headway, arrival timetabled or omitted+note. Returns legs (rail + one bus) + transfers (transfer + walk_min, estimated) + arrival_time + duration_min + transfer_count(=1); ambiguous endpoint → matches; rail unreachable / no qualifying stop / no direct bus → empty routes + note. Auto-hub-selection, bus→rail, and multi-transfer are future work (3b-ii)."
+      "description": "Rail→bus multi-modal routing (Stage 3b). `transfer` is OPTIONAL: given → change modes at that rail station (3b-i); omitted → auto-select the transfer hub (3b-ii) via to_stop-anchored reverse search (name-match the upstream stops of to_stop's serving routes to rail stations), routing rail+bus per candidate and returning the earliest arrival with `auto_selected_transfer` (candidate cap default 8, overflow disclosed in a note). Rail leg reuses the TRA↔Taipei-Metro engine; name-match is 捷運X站/X車站 (臺/台 normalized, structured so district names don't over-match); the bus leg boards at rail-arrival+walk with A2 disabled (a now-snapshot can't time a future board) — board from schedule/headway, arrival timetabled or omitted+note. Returns legs (rail + one bus) + transfers + arrival_time + duration_min + transfer_count(=1); ambiguous endpoint → matches; rail unreachable / no qualifying hub / no direct bus → empty routes + note. bus→rail and multi-transfer are future work (3c)."
     },
     {
       "name": "metro_find_route",

@@ -90,6 +90,7 @@ final class RailBusRouteToolTests: XCTestCase {
         XCTAssertEqual(transfers.first?["walk_min"] as? Int, 5)
         XCTAssertEqual(o["transfer_count"] as? Int, 1)
         XCTAssertNotNil(o["arrival_time"] as? String)
+        XCTAssertNil(o["auto_selected_transfer"], "explicit transfer must not emit auto marker")
     }
 
     // (b) Ambiguous to_stop → matches. Short-circuits after railStation + metroSOR + busStop.
@@ -135,6 +136,70 @@ final class RailBusRouteToolTests: XCTestCase {
         let o = try parse(r)
         XCTAssertEqual((o["routes"] as? [[String: Any]])?.count, 0)
         XCTAssertNotNil(o["note"])
+        XCTAssertNil(o["legs"])
+    }
+
+    // MARK: - Stage 3b-ii: auto transfer-hub (transfer omitted)
+
+    // metro SOR WITHOUT 台北車站 so 臺北車站(忠孝) name-matches only the TRA 臺北 → exactly one hub.
+    private let autoMetroSOR = """
+    [ {"LineID":"BL","Stations":[
+        {"Sequence":1,"StationID":"BL11","StationName":{"Zh_tw":"西門"}},
+        {"Sequence":2,"StationID":"BL10","StationName":{"Zh_tw":"龍山寺"}} ]} ]
+    """
+
+    // (e) Auto happy: transfer omitted → reverse search picks 臺北, rail+bus legs + auto_selected_transfer.
+    //     Auto fetch order: traStations, metroSOR, busStop, busStopOfRoute, busSchedule, then per-hub composeRailLeg.
+    func testAutoHubHappyPath() async throws {
+        TestSupport.queueTokenThenAll([d(traStations), d(autoMetroSOR), d(busStopsHappy),
+                                       d(stopOfRouteHappy), d(scheduleHappy),
+                                       d("[]"), d("[]"), d("[]"), d(odTimetable), d(liveBoard)])
+        let r = await call(["from": .string("中壢"), "to_stop": .string("迄站"),
+                            "city": .string("Taipei"), "depart_after": .string("08:00")])
+        XCTAssertFalse(r.isError ?? false)
+        let o = try parse(r)
+        XCTAssertEqual(o["auto_selected_transfer"] as? String, "臺北")
+        let legs = try XCTUnwrap(o["legs"] as? [[String: Any]])
+        XCTAssertEqual(legs.first?["mode"] as? String, "TRA")
+        XCTAssertEqual(legs.last?["mode"] as? String, "Bus")
+        XCTAssertEqual(legs.last?["from_name"] as? String, "臺北車站(忠孝)")
+        XCTAssertEqual(o["transfer_count"] as? Int, 1)
+    }
+
+    // (f) Auto, no qualifying hub: no upstream stop name-matches a rail station → empty + note.
+    //     Short-circuits after busStopOfRoute (no schedule / rail fetch).
+    func testAutoHubNoQualifyingHubEmptyWithNote() async throws {
+        let busStopsNoHub = """
+        [ {"StopUID":"D1","StopName":{"Zh_tw":"迄站"}},
+          {"StopUID":"NS","StopName":{"Zh_tw":"某市場"}} ]
+        """
+        let stopOfRouteNoHub = """
+        [ {"RouteUID":"X","RouteName":{"Zh_tw":"X"},"Direction":0,"Stops":[
+            {"StopUID":"NS","StopName":{"Zh_tw":"某市場"}},
+            {"StopUID":"D1","StopName":{"Zh_tw":"迄站"}} ]} ]
+        """
+        TestSupport.queueTokenThenAll([d(traStations), d(autoMetroSOR), d(busStopsNoHub), d(stopOfRouteNoHub)])
+        let r = await call(["from": .string("中壢"), "to_stop": .string("迄站"), "city": .string("Taipei")])
+        XCTAssertFalse(r.isError ?? false)
+        let o = try parse(r)
+        XCTAssertEqual((o["routes"] as? [[String: Any]])?.count, 0)
+        XCTAssertNotNil(o["note"])
+        XCTAssertNil(o["legs"])
+        XCTAssertNil(o["auto_selected_transfer"])
+    }
+
+    // (g) Auto, ambiguous to_stop → matches. Short-circuits after busStop fetch.
+    func testAutoHubAmbiguousToStopReturnsMatches() async throws {
+        let busStopsAmbig = """
+        [ {"StopUID":"M1","StopName":{"Zh_tw":"市政府"}},
+          {"StopUID":"M2","StopName":{"Zh_tw":"市政府"}} ]
+        """
+        TestSupport.queueTokenThenAll([d(traStations), d(autoMetroSOR), d(busStopsAmbig)])
+        let r = await call(["from": .string("中壢"), "to_stop": .string("市政府"), "city": .string("Taipei")])
+        XCTAssertFalse(r.isError ?? false)
+        let o = try parse(r)
+        XCTAssertEqual(o["ambiguous"] as? String, "to_stop")
+        XCTAssertEqual((o["matches"] as? [[String: Any]])?.count, 2)
         XCTAssertNil(o["legs"])
     }
 }

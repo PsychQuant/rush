@@ -31,17 +31,17 @@ enum TransitTools {
             ),
             Tool(
                 name: "rail_bus_route",
-                description: "鐵路→公車多模式路由（Stage 3b，需明確指定轉乘站）：給起站 from、轉乘鐵路站 transfer、公車迄站 to_stop 與 city，算出 depart_after（預設現在）起最早抵達的 rail→步行→bus 行程。鐵路段用 transit_route 的 TRA↔台北捷運引擎（source=live/scheduled/frequency），於 transfer 站以站名比對（捷運X站／X車站）找出公車上車站，公車段以「抵達 transfer + 步行」為發車錨點算直達 to_stop 的班次（A2 即時不適用未來時刻故停用，改用班表發車 source:scheduled／班距期望 source:frequency；班表抵達 source:scheduled，frequency-only 抵達從缺 + note）。回 legs（鐵路各段 + 一段 bus）、transfers（transfer 站 + 步行分鐘，步行為估計值）、arrival_time、duration_min、transfer_count(=1)。起/transfer/to_stop 站名多筆同名 → 回 matches。鐵路不可達／transfer 無對應公車上車站／無直達 to_stop → routes:[] + note（非錯誤）。僅 rail→bus 單轉乘；自動選轉乘站、bus→rail、多段轉乘為未來工作（3b-ii）。",
+                description: "鐵路→公車多模式路由（Stage 3b）：給起站 from、公車迄站 to_stop 與 city，算出 depart_after（預設現在）起最早抵達的 rail→步行→bus 行程。transfer 轉乘鐵路站為**選填**：指定時走該站轉乘（3b-i）；省略時自動選交會站（3b-ii）——以 to_stop 為錨反向搜尋（serving to_stop 的公車路線上游站做站名比對 捷運X站／X車站 找出對應鐵路站），對每個候選交會站跑 rail+bus 並回最早抵達者，輸出 auto_selected_transfer 標示選中的交會站（候選數有上限，超過會在 note 揭露捨棄數）。鐵路段用 transit_route 的 TRA↔台北捷運引擎（source=live/scheduled/frequency）；公車段以「抵達 transfer + 步行」為發車錨點算直達 to_stop 的班次（A2 即時不適用未來時刻故停用，改用班表發車 source:scheduled／班距期望 source:frequency；班表抵達 source:scheduled，frequency-only 抵達從缺 + note）。回 legs（鐵路各段 + 一段 bus）、transfers（transfer 站 + 步行分鐘，步行為估計值）、arrival_time、duration_min、transfer_count(=1)。站名多筆同名 → 回 matches。鐵路不可達／無對應公車上車站／無直達 to_stop → routes:[] + note（非錯誤）。僅 rail→bus 單轉乘；bus→rail、多段轉乘為未來工作（3c）。",
                 inputSchema: .object([
                     "type": .string("object"),
                     "properties": .object([
                         "from": .object(["type": .string("string"), "description": .string("起站（站名或站 ID，台鐵或台北捷運站）")]),
-                        "transfer": .object(["type": .string("string"), "description": .string("轉乘的鐵路站（站名或站 ID，台鐵或台北捷運站）——在此站由鐵路換乘公車")]),
+                        "transfer": .object(["type": .string("string"), "description": .string("（選填）轉乘的鐵路站（站名或站 ID，台鐵或台北捷運站）——指定則於該站換乘；省略則自動選交會站")]),
                         "to_stop": .object(["type": .string("string"), "description": .string("公車迄站站名或 StopUID")]),
                         "city": .object(["type": .string("string"), "description": .string("公車城市代碼（BusCity 列舉，如 Taipei）"), "enum": .array(BusCity.allCases.map { .string($0.rawValue) })]),
                         "depart_after": .object(["type": .string("string"), "description": .string("出發時間錨點 HH:mm（Asia/Taipei），預設現在")])
                     ]),
-                    "required": .array([.string("from"), .string("transfer"), .string("to_stop"), .string("city")]),
+                    "required": .array([.string("from"), .string("to_stop"), .string("city")]),
                     "additionalProperties": .bool(false)
                 ]),
                 annotations: .init(readOnlyHint: true, openWorldHint: true)
@@ -162,9 +162,6 @@ enum TransitTools {
         guard let fromQ = arguments["from"]?.stringValue, !fromQ.isEmpty else {
             throw TDXError.decoding("Missing required parameter: from")
         }
-        guard let transferQ = arguments["transfer"]?.stringValue, !transferQ.isEmpty else {
-            throw TDXError.decoding("Missing required parameter: transfer")
-        }
         guard let toQ = arguments["to_stop"]?.stringValue, !toQ.isEmpty else {
             throw TDXError.decoding("Missing required parameter: to_stop")
         }
@@ -181,10 +178,9 @@ enum TransitTools {
             [MetroStationOfRoute].self, from: try await client.fetch(path: TDXEndpoints.metroStationOfRoute(.TRTC), cacheTTL: 86400, cache: cache))) ?? []
         let metroStations = uniqueMetroStations(metroSOR)
         let fromMatches = resolveCandidates(fromQ, traStations: traStations, metroStations: metroStations)
-        let transferMatches = resolveCandidates(transferQ, traStations: traStations, metroStations: metroStations)
         if let amb = disambiguation(query: fromQ, role: "from", matches: fromMatches, departAfter: departAfter) { return amb }
-        if let amb = disambiguation(query: transferQ, role: "transfer", matches: transferMatches, departAfter: departAfter) { return amb }
-        let from = fromMatches[0], transfer = transferMatches[0]
+        let from = fromMatches[0]
+        let transferRaw = arguments["transfer"]?.stringValue
 
         // Bus stops + resolve to_stop (name or StopUID; ambiguous → matches).
         let busStops = BusTools.decodeList(BusStop.self, data: try await client.fetch(
@@ -195,6 +191,31 @@ enum TransitTools {
         case .result(let r): return r
         }
 
+        // Explicit transfer (3b-i) vs auto-hub (3b-ii).
+        if let transferQ = transferRaw, !transferQ.isEmpty {
+            let transferMatches = resolveCandidates(transferQ, traStations: traStations, metroStations: metroStations)
+            if let amb = disambiguation(query: transferQ, role: "transfer", matches: transferMatches, departAfter: departAfter) { return amb }
+            return try await routeExplicit(from: from, transfer: transferMatches[0], to: to, busStops: busStops,
+                                           metroSOR: metroSOR, city: city, departAfter: departAfter,
+                                           departAfterMin: departAfterMin, nowMin: nowMin, weekday: weekday,
+                                           client: client, cache: cache)
+        }
+        return try await routeAuto(from: from, to: to, busStops: busStops, metroSOR: metroSOR,
+                                   traStations: traStations, metroStations: metroStations, city: city,
+                                   departAfter: departAfter, departAfterMin: departAfterMin, nowMin: nowMin,
+                                   weekday: weekday, client: client, cache: cache)
+    }
+
+    // MARK: - rail_bus_route: explicit transfer (3b-i)
+
+    /// The frozen Stage 3b-i path: rail to the given `transfer`, then a name-matched bus leg
+    /// to `to`. Unchanged behavior — relocated verbatim from the executor so the auto path
+    /// can sit beside it. Fetch order (rail datasets → busStopOfRoute → busSchedule) preserved.
+    private static func routeExplicit(from: MultimodalRouter.Stop, transfer: MultimodalRouter.Stop,
+                                      to: (uid: String, name: String), busStops: [BusStop],
+                                      metroSOR: [MetroStationOfRoute], city: BusCity, departAfter: String,
+                                      departAfterMin: Int, nowMin: Int, weekday: Int,
+                                      client: TDXClient, cache: Cache) async throws -> CallTool.Result {
         // Rail leg from → transfer.
         let railIt: MultimodalRouter.Itinerary
         switch try await composeRailLeg(from: from, to: transfer, departAfterMin: departAfterMin,
@@ -219,6 +240,115 @@ enum TransitTools {
         // Candidate direct bus routes: a name-matched stop before to_stop, same direction.
         let routes = BusTools.decodeList(BusStopOfRoute.self, data: try await client.fetch(
             path: TDXEndpoints.busStopOfRoute(city.rawValue), cacheTTL: 3600, cache: cache))
+        let candidates = busCandidates(routes: routes, candidateUIDs: candidateUIDs, to: to)
+        if candidates.isEmpty {
+            return railBusEmpty(from: from.name, transfer: transfer.name, toName: to.name, city: city, departAfter: departAfter,
+                                note: "於 \(transfer.name) 的公車上車站查無直達 \(to.name) 的路線；多段公車轉乘尚未支援（3b-ii）")
+        }
+
+        // Bus leg: A2 DISABLED (a now-snapshot cannot time a future post-transfer board);
+        // board from schedule/headway only, anchored at rail arrival + walk.
+        let scheduleBySig = try await fetchScheduleBySig(city: city, client: client, cache: cache)
+        let options = BusRouter.route(candidates: candidates, a2BySig: [:], scheduleBySig: scheduleBySig,
+                                      nowMin: nowMin, departAfterMin: busDepartAfterMin, weekday: weekday)
+        guard let composed = RailBusRouter.compose(railLegs: railIt.legs, transferStationName: transfer.name,
+                                                   transferWalkMin: transferWalkMin, busOptions: options, nowMin: nowMin) else {
+            return railBusEmpty(from: from.name, transfer: transfer.name, toName: to.name, city: city, departAfter: departAfter,
+                                note: "於 \(transfer.name) 查無從上車站直達 \(to.name) 的可組合班次")
+        }
+        return ToolResult.json(railBusPayload(fromName: from.name, transfer: transfer, toName: to.name,
+                                              city: city, departAfter: departAfter, result: composed))
+    }
+
+    // MARK: - rail_bus_route: auto transfer-hub (3b-ii)
+
+    /// Auto-hub path: discover transfer hubs via `to_stop`-anchored reverse search, run the
+    /// rail+bus stitch per candidate hub, and return the earliest-arrival itinerary with
+    /// `auto_selected_transfer`. Candidate set is bounded; cap overflow is disclosed in a note.
+    private static func routeAuto(from: MultimodalRouter.Stop, to: (uid: String, name: String),
+                                  busStops: [BusStop], metroSOR: [MetroStationOfRoute],
+                                  traStations: [RailStation], metroStations: [(id: String, name: String)],
+                                  city: BusCity, departAfter: String, departAfterMin: Int, nowMin: Int,
+                                  weekday: Int, client: TDXClient, cache: Cache) async throws -> CallTool.Result {
+        // Rail station (id,name) list + id→Stop map (TRA singletons + grouped TRTC platforms).
+        var railStations: [(id: String, name: String)] = []
+        var stopByID: [String: MultimodalRouter.Stop] = [:]
+        for s in traStations {
+            let nm = s.stationName.zhTw ?? s.stationID
+            railStations.append((s.stationID, nm))
+            stopByID[s.stationID] = .init(mode: .tra, ids: [s.stationID], name: nm)
+        }
+        var metroByName: [String: (name: String, ids: [String])] = [:]
+        var metroOrder: [String] = []
+        for m in metroStations {
+            if metroByName[m.name] == nil { metroByName[m.name] = (m.name, []); metroOrder.append(m.name) }
+            metroByName[m.name]!.ids.append(m.id)
+        }
+        for nm in metroOrder {
+            let g = metroByName[nm]!
+            guard let rep = g.ids.first else { continue }
+            railStations.append((rep, g.name))
+            stopByID[rep] = .init(mode: .metro, ids: g.ids, name: g.name)
+        }
+
+        // Reverse search: candidate hubs from to_stop's serving routes.
+        let routes = BusTools.decodeList(BusStopOfRoute.self, data: try await client.fetch(
+            path: TDXEndpoints.busStopOfRoute(city.rawValue), cacheTTL: 3600, cache: cache))
+        let discovery = RailBusRouter.candidateHubs(toStopUID: to.uid, routes: routes, railStations: railStations)
+        if discovery.hubs.isEmpty {
+            return railBusEmpty(from: from.name, transfer: "(自動)", toName: to.name, city: city, departAfter: departAfter,
+                                note: "自動選轉乘站：serving \(to.name) 的公車路線上游查無對應鐵路站（站名比對 捷運X站／X車站）；無 rail→bus 交會點")
+        }
+
+        // Unique hub stations, closest-upstream first.
+        var seenHub = Set<String>()
+        var hubStops: [MultimodalRouter.Stop] = []
+        for h in discovery.hubs where !seenHub.contains(h.railStationID) {
+            seenHub.insert(h.railStationID)
+            if let st = stopByID[h.railStationID] { hubStops.append(st) }
+        }
+
+        // Bus schedule once; stitch each hub (rail leg + name-matched bus leg), keep the successes.
+        let scheduleBySig = try await fetchScheduleBySig(city: city, client: client, cache: cache)
+        let transferWalkMin = RailBusRouter.defaultTransferWalkMin
+        var results: [RailBusRouter.Result] = []
+        for hub in hubStops {
+            let railIt: MultimodalRouter.Itinerary
+            switch try await composeRailLeg(from: from, to: hub, departAfterMin: departAfterMin,
+                                            metroSOR: metroSOR, client: client, cache: cache) {
+            case .ok(let it): railIt = it
+            case .empty: continue   // hub not rail-reachable from `from`; try the next
+            }
+            let candidateUIDs = Set(busStops.filter {
+                RailBusRouter.busStopMatchesStation(stopName: $0.stopName.zhTw ?? "", stationName: hub.name) }.map { $0.stopUID })
+            let candidates = busCandidates(routes: routes, candidateUIDs: candidateUIDs, to: to)
+            if candidates.isEmpty { continue }
+            let options = BusRouter.route(candidates: candidates, a2BySig: [:], scheduleBySig: scheduleBySig,
+                                          nowMin: nowMin, departAfterMin: railIt.arrMin + transferWalkMin, weekday: weekday)
+            if let res = RailBusRouter.compose(railLegs: railIt.legs, transferStationName: hub.name,
+                                               transferWalkMin: transferWalkMin, busOptions: options, nowMin: nowMin) {
+                results.append(res)
+            }
+        }
+        guard let best = RailBusRouter.selectEarliest(results) else {
+            return railBusEmpty(from: from.name, transfer: "(自動)", toName: to.name, city: city, departAfter: departAfter,
+                                note: "自動選轉乘站：找到 \(hubStops.count) 個候選交會站，但無一可由 \(from.name) 鐵路抵達並直達 \(to.name)")
+        }
+        let bestHub = hubStops.first { $0.name == best.transferStationName }
+            ?? MultimodalRouter.Stop(mode: .tra, ids: [], name: best.transferStationName)
+        var payload = railBusPayload(fromName: from.name, transfer: bestHub, toName: to.name,
+                                     city: city, departAfter: departAfter, result: best)
+        payload["auto_selected_transfer"] = best.transferStationName
+        if discovery.droppedCount > 0 {
+            payload["auto_hub_note"] = "自動選轉乘站：候選交會站超過上限 \(RailBusRouter.maxAutoHubCandidates)，已取最接近 \(to.name) 的前 \(RailBusRouter.maxAutoHubCandidates) 個，捨棄 \(discovery.droppedCount) 個"
+        }
+        return ToolResult.json(payload)
+    }
+
+    /// Direct-bus candidates: a name-matched boarding stop (`candidateUIDs`) appearing before
+    /// `to` in the same route direction. Shared by the explicit and auto paths.
+    private static func busCandidates(routes: [BusStopOfRoute], candidateUIDs: Set<String>,
+                                      to: (uid: String, name: String)) -> [BusRouter.Candidate] {
         var candidates: [BusRouter.Candidate] = []
         for r in routes {
             guard let di = r.stops.firstIndex(where: { $0.stopUID == to.uid }) else { continue }
@@ -229,13 +359,11 @@ enum TransitTools {
                 originStopUID: r.stops[oi].stopUID, originStopName: r.stops[oi].stopName.zhTw ?? "",
                 destStopUID: to.uid, destStopName: r.stops[di].stopName.zhTw ?? to.name))
         }
-        if candidates.isEmpty {
-            return railBusEmpty(from: from.name, transfer: transfer.name, toName: to.name, city: city, departAfter: departAfter,
-                                note: "於 \(transfer.name) 的公車上車站查無直達 \(to.name) 的路線；多段公車轉乘尚未支援（3b-ii）")
-        }
+        return candidates
+    }
 
-        // Bus leg: A2 DISABLED (a now-snapshot cannot time a future post-transfer board);
-        // board from schedule/headway only, anchored at rail arrival + walk.
+    /// Bus/Schedule fetch → route+direction → schedule map (graceful; empty when unavailable).
+    private static func fetchScheduleBySig(city: BusCity, client: TDXClient, cache: Cache) async throws -> [String: BusSchedule] {
         var scheduleBySig: [String: BusSchedule] = [:]
         if let sc = try? await client.fetch(path: TDXEndpoints.busSchedule(city.rawValue), cacheTTL: 3600, cache: cache) {
             for s in BusTools.decodeList(BusSchedule.self, data: sc) {
@@ -243,15 +371,7 @@ enum TransitTools {
                 if scheduleBySig[k] == nil { scheduleBySig[k] = s }
             }
         }
-        let options = BusRouter.route(candidates: candidates, a2BySig: [:], scheduleBySig: scheduleBySig,
-                                      nowMin: nowMin, departAfterMin: busDepartAfterMin, weekday: weekday)
-        guard let composed = RailBusRouter.compose(railLegs: railIt.legs, transferStationName: transfer.name,
-                                                   transferWalkMin: transferWalkMin, busOptions: options, nowMin: nowMin) else {
-            return railBusEmpty(from: from.name, transfer: transfer.name, toName: to.name, city: city, departAfter: departAfter,
-                                note: "於 \(transfer.name) 查無從上車站直達 \(to.name) 的可組合班次")
-        }
-        return ToolResult.json(railBusPayload(fromName: from.name, transfer: transfer, toName: to.name,
-                                              city: city, departAfter: departAfter, result: composed))
+        return scheduleBySig
     }
 
     /// Fetch the metro datasets (reusing the already-fetched `metroSOR`) + the TRA OD

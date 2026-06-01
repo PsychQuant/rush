@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "che-transport-mcp",
-  "description": "Taiwan TDX transport MCP — 26 tools across Rail / Bus / Bike / Air / Traffic / Parking (multi-modal TRA↔Taipei-Metro via transit_route + direct-route bus via bus_route, rail→bus via rail_bus_route). Self-contained marketplace: this repo holds the binary source, the plugin shell, and the marketplace catalog.",
+  "description": "Taiwan TDX transport MCP — 26 tools across Rail / Bus / Bike / Air / Traffic / Parking (multi-modal TRA↔Taipei-Metro via transit_route + direct-route bus via bus_route, rail→bus via rail_bus_route, auto-hub). Self-contained marketplace: this repo holds the binary source, the plugin shell, and the marketplace catalog.",
   "owner": {
     "name": "Che Cheng"
   },
@@ -9,7 +9,7 @@
     {
       "name": "che-transport-mcp",
       "source": "./plugin",
-      "description": "Wraps the PsychQuant/che-transport-mcp binary (binaryVersion-pinned auto-download). 26 tools: rail (rail_route time-dependent + metro_find_route), transit_route (TRA↔Taipei-Metro multi-modal), rail_bus_route (rail→bus, explicit name-matched transfer), bus_route (direct-route bus, A2 live board + honest timetable arrival), bus/bike/air/traffic/parking. 3-tier cache TTL, NSQL confirmation discipline.",
+      "description": "Wraps the PsychQuant/che-transport-mcp binary (binaryVersion-pinned auto-download). 26 tools: rail (rail_route time-dependent + metro_find_route), transit_route (TRA↔Taipei-Metro multi-modal), rail_bus_route (rail→bus, explicit or auto-selected name-matched transfer), bus_route (direct-route bus, A2 live board + honest timetable arrival), bus/bike/air/traffic/parking. 3-tier cache TTL, NSQL confirmation discipline.",
       "category": "productivity"
     }
   ]

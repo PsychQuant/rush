@@ -11,6 +11,86 @@ enum RailBusRouter {
     /// station. A constant estimate (the matched stop is at the station), not measured.
     static let defaultTransferWalkMin = 5
 
+    /// Stage 3b-ii: max transfer-hub candidates explored when `transfer` is auto-selected.
+    /// Each candidate costs a rail-leg route; this bounds the worst-case fan-out while
+    /// covering realistic transfer choices. Overflow is disclosed, never silently dropped.
+    static let maxAutoHubCandidates = 8
+
+    /// A discovered transfer hub (Stage 3b-ii): a rail station with a name-matched bus
+    /// stop on a route that reaches `to_stop` downstream.
+    struct HubCandidate: Equatable {
+        let railStationName: String
+        let railStationID: String
+        let boardingStopUID: String
+        let boardingStopName: String
+        let routeUID: String
+        let direction: Int
+    }
+
+    /// Result of the reverse search: capped candidates (closest-upstream first) + how
+    /// many were dropped by the cap (for honest disclosure).
+    struct HubDiscovery: Equatable {
+        let hubs: [HubCandidate]
+        let droppedCount: Int
+    }
+
+    /// `to_stop`-anchored reverse search (Stage 3b-ii). Among `routes`, for each route
+    /// where `toStopUID` appears, scan the stops UPSTREAM of it (lower array index =
+    /// earlier in the same direction) and name-match each against `railStations`. Each
+    /// match is a `(rail hub, boarding stop)` candidate. Candidates are deduplicated by
+    /// `(railStationID, boardingStopUID)` keeping the closest-upstream occurrence, ordered
+    /// by ascending index gap to `toStopUID` (closest = shortest remaining bus ride), then
+    /// capped at `cap` with the dropped count reported. Pure over already-fetched data.
+    static func candidateHubs(toStopUID: String, routes: [BusStopOfRoute],
+                              railStations: [(id: String, name: String)],
+                              cap: Int = maxAutoHubCandidates) -> HubDiscovery {
+        // (candidate, index-gap) — gap = toStopIndex - boardingIndex on that route.
+        var found: [(cand: HubCandidate, gap: Int)] = []
+        for r in routes {
+            guard let di = r.stops.firstIndex(where: { $0.stopUID == toStopUID }) else { continue }
+            for oi in 0..<di {
+                let stop = r.stops[oi]
+                let stopName = stop.stopName.zhTw ?? ""
+                for station in railStations where busStopMatchesStation(stopName: stopName, stationName: station.name) {
+                    found.append((HubCandidate(
+                        railStationName: station.name, railStationID: station.id,
+                        boardingStopUID: stop.stopUID, boardingStopName: stopName,
+                        routeUID: r.routeUID, direction: r.direction ?? 0), di - oi))
+                }
+            }
+        }
+        // Dedup by (railStationID, boardingStopUID), keep the smallest gap (closest upstream).
+        var bestByKey: [String: (cand: HubCandidate, gap: Int)] = [:]
+        for f in found {
+            let key = "\(f.cand.railStationID)|\(f.cand.boardingStopUID)"
+            if let prev = bestByKey[key], prev.gap <= f.gap { continue }
+            bestByKey[key] = f
+        }
+        // Closest-upstream first; stable tiebreak on station then stop for determinism.
+        let ordered = bestByKey.values.sorted {
+            $0.gap != $1.gap ? $0.gap < $1.gap
+                : ($0.cand.railStationID != $1.cand.railStationID
+                    ? $0.cand.railStationID < $1.cand.railStationID
+                    : $0.cand.boardingStopUID < $1.cand.boardingStopUID)
+        }
+        let kept = Array(ordered.prefix(max(0, cap))).map { $0.cand }
+        return HubDiscovery(hubs: kept, droppedCount: max(0, ordered.count - kept.count))
+    }
+
+    /// Pick the stitched itinerary with the earliest final arrival across candidate hubs
+    /// (known arrivals before unknown, then soonest absolute board). Mirrors the per-option
+    /// ordering in `compose`, lifted to span hubs. nil when `results` is empty.
+    static func selectEarliest(_ results: [Result]) -> Result? {
+        results.min { a, b in
+            switch (a.arrivalClockMin, b.arrivalClockMin) {
+            case let (x?, y?): return x != y ? x < y : a.busBoardClockMin < b.busBoardClockMin
+            case (_?, nil):    return true
+            case (nil, _?):    return false
+            case (nil, nil):   return a.busBoardClockMin < b.busBoardClockMin
+            }
+        }
+    }
+
     /// Whether a bus stop sits at a rail station, by NAME (not geo). Normalizes
     /// `臺`→`台`, then matches structured patterns so district-named stops don't
     /// over-match: a station `南港` accepts `南港行政中心(南港車站)` but rejects

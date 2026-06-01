@@ -6,7 +6,7 @@ A Model Context Protocol server providing real-time Taiwan transport queries via
 
 ## Status
 
-**v0.2-dev** — 26 tools across 6 transport modes (Rail / Bus / Bike / Air / Traffic / Parking) incl. `transit_route` (TRA↔Taipei-Metro multi-modal), `bus_route` (direct-route bus, live A2 board ETA) + `rail_bus_route` (rail→bus with an explicit, name-matched transfer)
+**v0.2-dev** — 26 tools across 6 transport modes (Rail / Bus / Bike / Air / Traffic / Parking) incl. `transit_route` (TRA↔Taipei-Metro multi-modal), `bus_route` (direct-route bus, live A2 board ETA) + `rail_bus_route` (rail→bus; explicit transfer or auto-selected hub via name-matched reverse search)
 
 Roadmap:
 - v0.1: Rail ✅ (5 tools)

@@ -58,4 +58,39 @@ final class RailBusLiveTests: XCTestCase {
             XCTAssertNotNil(o["note"], "empty routes must carry a note")
         }
     }
+
+    /// Stage 3b-ii: same query with `transfer` OMITTED → auto-hub selection. to_stop is a
+    /// concrete StopUID (捷運市政府站, TPE10767) so it resolves uniquely and drives the full
+    /// reverse-search + per-hub stitch. Accepted outcomes: a stitched itinerary carrying
+    /// `auto_selected_transfer`, a `matches` disambiguation, or empty + note.
+    func testRailBusAutoHubLive() async throws {
+        guard ProcessInfo.processInfo.environment["TDX_CONTRACT"] != nil else {
+            throw XCTSkip("Live rail_bus_route auto-hub check is opt-in. Set TDX_CONTRACT=1.")
+        }
+        let c: (clientId: String, clientSecret: String)
+        do { c = try Self.creds() } catch { throw XCTSkip("TDX credentials unavailable.") }
+
+        let client = TDXClient(credentialProvider: { c })
+        let r = await TransitTools.handleCall(
+            name: "rail_bus_route",
+            arguments: ["from": .string("中壢"), "to_stop": .string("TPE10767"), "city": .string("Taipei")],
+            client: client, cache: Cache())
+
+        XCTAssertFalse(r.isError ?? false, "auto-hub rail_bus_route must not surface a system error")
+        let txt = TestSupport.textContent(r)
+        let o = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(txt.utf8)) as? [String: Any])
+
+        if let legs = o["legs"] as? [[String: Any]], !legs.isEmpty {
+            print("LIVE auto-hub 中壢→(auto)→TPE10767 → hub=\(o["auto_selected_transfer"] ?? "?"), \(legs.count) legs")
+            XCTAssertNotNil(o["auto_selected_transfer"] as? String, "auto path must name the chosen hub")
+            XCTAssertEqual(legs.last?["mode"] as? String, "Bus")
+            XCTAssertEqual(o["transfer_count"] as? Int, 1)
+        } else if let matches = o["matches"] as? [[String: Any]] {
+            print("LIVE auto-hub → ambiguous, \(matches.count) matches — executor + resolution OK")
+            XCTAssertFalse(matches.isEmpty)
+        } else {
+            print("LIVE auto-hub → empty: \(o["note"] ?? o)")
+            XCTAssertNotNil(o["note"], "empty routes must carry a note")
+        }
+    }
 }
