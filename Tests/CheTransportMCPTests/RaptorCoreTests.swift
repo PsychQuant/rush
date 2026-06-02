@@ -140,4 +140,63 @@ final class RaptorCoreTests: XCTestCase {
         ], nameOf: [:])
         XCTAssertEqual(RaptorEngine.earliestArrival(graph: g, from: "A", to: "C", departAfterMin: 0, maxRounds: 2)?.arrivalMin, 40)
     }
+
+    // MARK: - Journey carries transfers (3c-ii.2 prerequisite)
+
+    /// TRA→metro inputs: 中壢(1080)→板橋(1020)→臺北(1000) train + BL line 板橋(BL07)→台北車站→西門,
+    /// so a 中壢→西門 journey transfers at the 板橋 interchange (1020, walk 4).
+    private func traToMetroInputs() -> RaptorCore.RoutingInputs {
+        let od: [RailODFare] = decode("""
+        [ {"TrainInfo":{"TrainNo":"100","TrainTypeName":{"Zh_tw":"自強"}},
+           "StopTimes":[
+            {"StationID":"1080","StationName":{"Zh_tw":"中壢"},"ArrivalTime":"08:00","DepartureTime":"08:00"},
+            {"StationID":"1020","StationName":{"Zh_tw":"板橋"},"ArrivalTime":"08:30","DepartureTime":"08:31"},
+            {"StationID":"1000","StationName":{"Zh_tw":"臺北"},"ArrivalTime":"08:45","DepartureTime":"08:45"} ]} ]
+        """)
+        let sor: [MetroStationOfRoute] = decode("""
+        [ {"LineID":"BL","Stations":[
+            {"Sequence":1,"StationID":"BL07","StationName":{"Zh_tw":"板橋"}},
+            {"Sequence":2,"StationID":"BL12","StationName":{"Zh_tw":"台北車站"}},
+            {"Sequence":3,"StationID":"BL11","StationName":{"Zh_tw":"西門"}} ]} ]
+        """)
+        let s2s: [MetroS2STravelTime] = decode("""
+        [ {"LineID":"BL","TravelTimes":[
+            {"FromStationID":"BL07","ToStationID":"BL12","RunTime":300,"StopTime":0},
+            {"FromStationID":"BL12","ToStationID":"BL11","RunTime":120,"StopTime":0} ]} ]
+        """)
+        let freq: [MetroFrequency] = decode("""
+        [ {"LineID":"BL","ServiceDay":{"Monday":true,"Tuesday":true,"Wednesday":true,"Thursday":true,"Friday":true,"Saturday":true,"Sunday":true},
+           "Headways":[{"StartTime":"00:00","EndTime":"24:00","MinHeadwayMins":4,"MaxHeadwayMins":6}]} ]
+        """)
+        return RaptorCore.RoutingInputs(traConnections: TimetableRouter.connections(from: od, delays: [:]),
+            metro: MultimodalRouter.MetroData(stationOfRoute: sor, s2s: s2s, lineTransfer: [], frequency: freq),
+            queryDate: Date(timeIntervalSince1970: 0))
+    }
+
+    // ComposedStrategy's Journey.transfers mirror the itinerary's transfers (interchange + walk).
+    func testComposedJourneyCarriesTransfers() {
+        let inputs = traToMetroInputs()
+        let from = MultimodalRouter.Stop(mode: .tra, ids: ["1080"], name: "中壢")
+        let to = MultimodalRouter.Stop(mode: .metro, ids: ["BL11"], name: "西門")
+        let it = MultimodalRouter.route(from: from, to: to, departAfterMin: 480,
+                                        traConnections: inputs.traConnections, metro: inputs.metro, queryDate: inputs.queryDate)
+        let j = ComposedStrategy().plan(from: from, to: to, departAfterMin: 480, inputs: inputs)
+        let cT = try? XCTUnwrap(it?.transfers)
+        let jT = try? XCTUnwrap(j?.transfers)
+        XCTAssertEqual(jT?.count, cT?.count)
+        XCTAssertEqual(jT?.first?.at, cT?.first?.at)             // 板橋 1020
+        XCTAssertEqual(jT?.first?.atName, cT?.first?.atName)
+        XCTAssertEqual(jT?.first?.walkMin, cT?.first?.walkMin)   // 4
+        XCTAssertEqual(j?.transferCount, it?.transferCount)
+    }
+
+    // Metro-only: no interchange → empty transfers, matching the itinerary.
+    func testComposedJourneyEmptyTransfersWhenNoInterchange() {
+        let inputs = metroInputs()
+        let it = MultimodalRouter.route(from: ximen, to: cityHall, departAfterMin: 480,
+                                        traConnections: inputs.traConnections, metro: inputs.metro, queryDate: inputs.queryDate)
+        let j = ComposedStrategy().plan(from: ximen, to: cityHall, departAfterMin: 480, inputs: inputs)
+        XCTAssertEqual(j?.transfers.count, it?.transfers.count)  // both 0
+        XCTAssertEqual(j?.transfers.isEmpty, true)
+    }
 }

@@ -160,14 +160,16 @@ enum TransitTools {
             traConnections = TimetableRouter.connections(from: trains, delays: delays)
         }
 
-        // Compose.
-        guard let it = MultimodalRouter.route(
-            from: from, to: to, departAfterMin: departAfterMin,
-            traConnections: traConnections, metro: metroData, queryDate: Date()) else {
+        // Compose — Stage 3c-ii.2: route through the RaptorCore strategy ensemble
+        // (ComposedStrategy floor + RaptorStrategy). For transit_route's ≤1-transfer
+        // journeys the proven floor dominates, so the output is identical to before.
+        let inputs = RaptorCore.RoutingInputs(traConnections: traConnections, metro: metroData, queryDate: Date())
+        guard let journey = RaptorCore.plan(from: from, to: to, departAfterMin: departAfterMin,
+                                            inputs: inputs, strategies: [ComposedStrategy(), RaptorStrategy()]) else {
             return emptyRoutes(from: from, to: to, departAfter: departAfter,
                                note: "\(departAfter) 之後查無可達路徑（可能起迄站不在 TRA↔台北捷運的可達範圍，或跨系統無策劃交會站銜接）")
         }
-
+        let it = MultimodalRouter.Itinerary(legs: journey.legs, transfers: journey.transfers, arrMin: journey.arrivalMin)
         return ToolResult.json(routePayload(from: from, to: to, departAfter: departAfter, itinerary: it))
     }
 

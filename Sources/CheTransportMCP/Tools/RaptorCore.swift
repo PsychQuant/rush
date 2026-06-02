@@ -15,8 +15,12 @@ enum RaptorCore {
     /// maximal same-line/same-train runs, so every leg boundary is a transfer.
     struct Journey {
         let legs: [MultimodalRouter.Leg]
+        let transfers: [MultimodalRouter.Transfer]
         let arrivalMin: Int
         var transferCount: Int { max(0, legs.count - 1) }
+        init(legs: [MultimodalRouter.Leg], transfers: [MultimodalRouter.Transfer] = [], arrivalMin: Int) {
+            self.legs = legs; self.transfers = transfers; self.arrivalMin = arrivalMin
+        }
     }
 
     /// Already-fetched datasets a strategy routes over. No strategy issues a new TDX fetch.
@@ -58,7 +62,7 @@ struct ComposedStrategy: RoutingStrategy {
         guard let it = MultimodalRouter.route(
             from: from, to: to, departAfterMin: departAfterMin,
             traConnections: inputs.traConnections, metro: inputs.metro, queryDate: inputs.queryDate) else { return nil }
-        return RaptorCore.Journey(legs: it.legs, arrivalMin: it.arrMin)
+        return RaptorCore.Journey(legs: it.legs, transfers: it.transfers, arrivalMin: it.arrMin)
     }
 }
 
@@ -149,8 +153,9 @@ enum RaptorEngine {
         }
         chain.reverse()
 
-        // Trip / frequency edges become legs; footpaths do not.
+        // Trip / frequency edges become legs; footpath edges become transfers.
         var legs: [MultimodalRouter.Leg] = []
+        var transfers: [MultimodalRouter.Transfer] = []
         var clock = departAfterMin
         for e in chain {
             switch e.kind {
@@ -167,11 +172,12 @@ enum RaptorEngine {
                     toStation: e.to, toName: graph.name(e.to),
                     depMin: dep, arrMin: a, delayMin: nil, source: "frequency"))
                 clock = a
-            case .footpath:
-                clock += { if case let .footpath(w) = e.kind { return w }; return 0 }()
+            case .footpath(let walk):
+                transfers.append(MultimodalRouter.Transfer(at: e.from, atName: graph.name(e.from), walkMin: walk))
+                clock += walk
             }
         }
-        return RaptorCore.Journey(legs: legs, arrivalMin: arrival)
+        return RaptorCore.Journey(legs: legs, transfers: transfers, arrivalMin: arrival)
     }
 }
 
