@@ -199,4 +199,37 @@ final class RaptorCoreTests: XCTestCase {
         XCTAssertEqual(j?.transfers.count, it?.transfers.count)  // both 0
         XCTAssertEqual(j?.transfers.isEmpty, true)
     }
+
+    // MARK: - Delegating facades (3c-ii.3)
+
+    // planBusDirect returns exactly what BusRouter.route returns for the same inputs.
+    func testPlanBusDirectDelegatesIdentically() {
+        let cand = BusRouter.Candidate(routeUID: "R1", routeName: "R1", subRouteName: nil, direction: 0,
+                                       originStopUID: "S1", originStopName: "起", destStopUID: "S2", destStopName: "迄")
+        let a2 = [BusRouter.sig("R1", 0): 120]
+        let facade = RaptorCore.planBusDirect(candidates: [cand], a2BySig: a2, scheduleBySig: [:],
+                                              nowMin: 480, departAfterMin: 480, weekday: 2)
+        let direct = BusRouter.route(candidates: [cand], a2BySig: a2, scheduleBySig: [:],
+                                     nowMin: 480, departAfterMin: 480, weekday: 2)
+        XCTAssertEqual(facade.count, direct.count)
+        XCTAssertEqual(facade.first?.routeName, direct.first?.routeName)
+        XCTAssertEqual(facade.first?.boardSource, direct.first?.boardSource)   // "live" via A2
+        XCTAssertEqual(facade.first?.boardInMin, direct.first?.boardInMin)
+    }
+
+    // planMetroRoutes returns [byTime, byTransfers] exactly as the graph's two searches do.
+    func testPlanMetroRoutesDelegatesIdentically() {
+        let sor: [MetroStationOfRoute] = decode("""
+        [ {"LineID":"BL","Stations":[
+            {"Sequence":1,"StationID":"BL11","StationName":{"Zh_tw":"西門"}},
+            {"Sequence":2,"StationID":"BL18","StationName":{"Zh_tw":"市政府"}} ]} ]
+        """)
+        let s2s: [MetroS2STravelTime] = decode(#"[ {"LineID":"BL","TravelTimes":[{"FromStationID":"BL11","ToStationID":"BL18","RunTime":300,"StopTime":0}]} ]"#)
+        let graph = MetroGraph(stationOfRoute: sor, s2s: s2s, lineTransfer: [], headwayByLine: ["BL": 4])
+        let facade = RaptorCore.planMetroRoutes(graph: graph, from: "BL11", to: "BL18")
+        let direct = [graph.shortestPathByTime(from: "BL11", to: "BL18"),
+                      graph.shortestPathByTransfers(from: "BL11", to: "BL18")].compactMap { $0 }
+        XCTAssertEqual(facade.count, direct.count)
+        XCTAssertEqual(facade.map { $0.stations }, direct.map { $0.stations })
+    }
 }

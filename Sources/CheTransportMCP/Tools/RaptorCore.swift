@@ -248,3 +248,27 @@ struct RaptorStrategy: RoutingStrategy {
         return best
     }
 }
+
+// MARK: - Delegating facades (Stage 3c-ii.3)
+//
+// Single-mode tools (bus_route, metro_find_route) dispatch through the core via these
+// facades, which delegate verbatim to the proven engines. This is STRUCTURAL routing-
+// through-the-core — NOT ensemble or multi-transfer capability: bus is bus-only and
+// metro is metro-only, so the round-based RaptorStrategy adds nothing; the facade just
+// makes "all routing goes through RaptorCore" literally true so journey_plan can follow.
+extension RaptorCore {
+    /// `bus_route` → the proven `BusRouter` direct-route engine, returned unchanged.
+    static func planBusDirect(candidates: [BusRouter.Candidate], a2BySig: [String: Int],
+                              scheduleBySig: [String: BusSchedule], nowMin: Int,
+                              departAfterMin: Int, weekday: Int) -> [BusRouter.Option] {
+        BusRouter.route(candidates: candidates, a2BySig: a2BySig, scheduleBySig: scheduleBySig,
+                        nowMin: nowMin, departAfterMin: departAfterMin, weekday: weekday)
+    }
+
+    /// `metro_find_route` → the proven metro graph's by-time + by-transfers searches,
+    /// in that order, nil results skipped (the exact set `candidateRoutes` consumed).
+    static func planMetroRoutes(graph: MetroGraph, from: String, to: String) -> [MetroGraph.Path] {
+        [graph.shortestPathByTime(from: from, to: to),
+         graph.shortestPathByTransfers(from: from, to: to)].compactMap { $0 }
+    }
+}

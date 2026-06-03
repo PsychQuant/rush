@@ -245,8 +245,10 @@ enum BusTools {
             }
         }
 
-        let options = BusRouter.route(candidates: candidates, a2BySig: a2BySig, scheduleBySig: scheduleBySig,
-                                      nowMin: nowMin, departAfterMin: departAfterMin, weekday: weekday)
+        // Stage 3c-ii.3: dispatch through RaptorCore's bus-direct facade (delegates to
+        // BusRouter; structural routing-through-the-core, not ensemble capability).
+        let options = RaptorCore.planBusDirect(candidates: candidates, a2BySig: a2BySig, scheduleBySig: scheduleBySig,
+                                               nowMin: nowMin, departAfterMin: departAfterMin, weekday: weekday)
         let routesOut: [[String: Any]] = options.map { o in
             var d: [String: Any] = [
                 "route_name": o.routeName, "direction": o.direction,

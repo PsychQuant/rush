@@ -144,9 +144,9 @@ extension MetroTools {
         graph: MetroGraph, lineMeta: [String: MetroLine], headwayRange: [String: (Int, Int)],
         from: String, to: String
     ) -> [[String: Any]] {
-        var paths: [MetroGraph.Path] = []
-        if let byTime = graph.shortestPathByTime(from: from, to: to) { paths.append(byTime) }
-        if let byXfer = graph.shortestPathByTransfers(from: from, to: to) { paths.append(byXfer) }
+        // Stage 3c-ii.3: dispatch through RaptorCore's metro-routes facade (delegates to
+        // the graph's by-time + by-transfers searches; structural, not ensemble capability).
+        let paths: [MetroGraph.Path] = RaptorCore.planMetroRoutes(graph: graph, from: from, to: to)
 
         var seen = Set<String>()
         let unique = paths.filter { seen.insert($0.stations.joined(separator: ">")).inserted }

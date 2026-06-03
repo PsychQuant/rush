@@ -640,12 +640,15 @@ enum TransitTools {
             }
             traConnections = TimetableRouter.connections(from: trains, delays: delays)
         }
-        guard let it = MultimodalRouter.route(
-            from: from, to: to, departAfterMin: departAfterMin,
-            traConnections: traConnections, metro: metroData, queryDate: Date()) else {
+        // Stage 3c-ii.3: route the rail leg through the RaptorCore ensemble (covers both
+        // rail_bus_route and bus_rail_route via this shared helper). ComposedStrategy
+        // dominates for these ≤1-transfer rail legs, so the result is identical.
+        let inputs = RaptorCore.RoutingInputs(traConnections: traConnections, metro: metroData, queryDate: Date())
+        guard let journey = RaptorCore.plan(from: from, to: to, departAfterMin: departAfterMin,
+                                            inputs: inputs, strategies: [ComposedStrategy(), RaptorStrategy()]) else {
             return .empty("查無可達路徑（起站與轉乘站可能不在 TRA↔台北捷運可達範圍，或跨系統無策劃交會站銜接）")
         }
-        return .ok(it)
+        return .ok(MultimodalRouter.Itinerary(legs: journey.legs, transfers: journey.transfers, arrMin: journey.arrivalMin))
     }
 
     private enum BusStopPick { case one(uid: String, name: String); case result(CallTool.Result) }
