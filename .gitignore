@@ -5,8 +5,7 @@ Package.resolved
 *.xcodeproj/
 DerivedData/
 *.log
-mcpb/server/CheTransportMCP
-mcpb/server/CheTransportMCP.sha256
+mcpb/server/
 mcpb/*.mcpb
 mcpb/*.mcpb.sha256
 mcpb/notarize-*.zip
