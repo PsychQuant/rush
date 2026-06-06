@@ -9,7 +9,7 @@ allowed-tools:
 
 # Setup TDX credentials for rush
 
-TDX 運輸資料流通服務 is the Taiwan government open-data API that all 21 tools in this plugin query. Free tier = 50 requests/min, no card needed.
+TDX 運輸資料流通服務 is the Taiwan government open-data API that all 27 tools in this plugin query. Free tier = 50 requests/min, no card needed.
 
 Setup has **two halves**, and it matters which one the user is stuck on:
 
@@ -123,7 +123,7 @@ SETUP=$(ls ~/.claude/plugins/cache/*/rush/*/bin/setup-tdx.sh 2>/dev/null | sort 
 [ -z "$SETUP" ] && SETUP=$(find ~/.claude/plugins -path '*rush*/bin/setup-tdx.sh' -type f 2>/dev/null | sort -V | tail -1)
 ```
 
-If still empty, the plugin install is broken — tell the user to `/plugin install rush@psychquant-claude-plugins`.
+If still empty, the plugin install is broken — tell the user to `/plugin install rush@rush`.
 
 Launch:
 
