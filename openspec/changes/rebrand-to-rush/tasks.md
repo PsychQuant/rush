@@ -22,11 +22,11 @@
 
 ## 5. 外部引用更新
 
-- [ ] 5.1 [P] 從中央 `psychquant-claude-plugins` 移除 che-transport entry 與過時的 `plugins/che-transport-mcp` 副本（self-marketplace 為唯一 canonical；既有使用者靠遷移說明改裝 rush）（spec: Documented Migration for Existing Installs）（驗證：中央 marketplace.json 已無 che-transport entry、無 plugins/che-transport-mcp 目錄）
-- [ ] 5.2 [P] 更新 che-mcps umbrella 對此 repo 的引用與 umbrella CLAUDE.md 的 submodule 表→rush（spec: Unified Rush Product Identity）（驗證：umbrella CLAUDE.md 該列為 rush、submodule 指向新名/redirect 可解析）
+- [x] 5.1 [P] 從中央 `psychquant-claude-plugins` 移除 che-transport entry 與過時的 `plugins/che-transport-mcp` 副本（self-marketplace 為唯一 canonical；既有使用者靠遷移說明改裝 rush）（spec: Documented Migration for Existing Installs）（驗證：origin/main 的 marketplace.json 0 個 che-transport ref、無 plugins/che-transport-mcp 目錄 — 已確認 live 中央 marketplace 本就乾淨；che-transport 僅存在於使用者 chore WIP 分支，屬其 merge 時自理）
+- [x] 5.2 [P] che-mcps umbrella 引用更新（spec: Unified Rush Product Identity）（驗證：no-op — che-transport-mcp 非 che-mcps 的 submodule、不在 .gitmodules、不在 umbrella CLAUDE.md Submodules 表；無引用可更新。如未來要納入 umbrella 為 submodule 屬另案）
 - [x] 5.3 [P] 更新頂層 `CLAUDE.md`、`README.md`、`README_zh-TW.md`→rush，加入既有安裝的遷移說明（卸載 che-transport-mcp、安裝 rush），並註記 keychain service 仍為 `che-transport-tdx`（spec: Documented Migration for Existing Installs）（驗證：README 含遷移段落、CLAUDE.md 提及 rush 且註明 keychain 維持 che-transport-tdx）
 
 ## 6. 驗收
 
-- [ ] 6.1 全新 self-marketplace 安裝驗收：add rush repo 為 marketplace、install rush、確認 wrapper 抓到 Rush binary（sha256 過）且 27 工具載入（spec: Self-Marketplace Distribution）（驗證：乾淨環境安裝後 27 工具皆可呼叫）
-- [ ] 6.2 憑證延續驗收：以 rename 前已存在的 `che-transport-tdx` 憑證，Rush binary 跑 OAuth 驗證成功、不需重設（spec: Preserved Credential Service）（驗證：`make check-auth`（rush 版）以既有憑證通過）
+- [x] 6.1 全新 self-marketplace 安裝驗收：add rush repo 為 marketplace、install rush、確認 wrapper 抓到 Rush binary（sha256 過）且 27 工具載入（spec: Self-Marketplace Distribution）（驗證：乾淨環境安裝後 27 工具皆可呼叫）
+- [x] 6.2 憑證延續驗收：以 rename 前已存在的 `che-transport-tdx` 憑證，Rush binary 跑 OAuth 驗證成功、不需重設（spec: Preserved Credential Service）（驗證：`make check-auth`（rush 版）以既有憑證通過）
