@@ -17,14 +17,14 @@
 
 ## 4. GitHub repo 改名 + 發布 Rush 1.0.0
 
-- [ ] 4.1 改名 GitHub repo（`gh repo rename rush`，owner 執行）、更新本地 git remote、確認舊 URL redirect 生效（spec: Unified Rush Product Identity）（驗證：`gh repo view PsychQuant/rush` 成功、本地 `git remote -v` 指向 rush）
-- [ ] 4.2 跑 sign+notarize+release pipeline，發布 `Rush` 1.0.0 binary + `.sha256` + mcpb 到 rush repo releases（spec: Release-Pinned Binary Auto-Download）（驗證：`gh release view` 顯示 rush repo 上有 `Rush` 資產與 `Rush.sha256` sidecar）
+- [x] 4.1 改名 GitHub repo（`gh repo rename rush`，owner 執行）、更新本地 git remote、確認舊 URL redirect 生效（spec: Unified Rush Product Identity）（驗證：`gh repo view PsychQuant/rush` 成功、本地 `git remote -v` 指向 rush）
+- [x] 4.2 跑 sign+notarize+release pipeline，發布 `Rush` 1.0.0 binary + `.sha256` + mcpb 到 rush repo releases（spec: Release-Pinned Binary Auto-Download）（驗證：`gh release view` 顯示 rush repo 上有 `Rush` 資產與 `Rush.sha256` sidecar）
 
 ## 5. 外部引用更新
 
-- [ ] 5.1 [P] 更新中央 `psychquant-claude-plugins` 的 che-transport entry 與 `plugins/che-transport-mcp` shell→rush，修正過時 metadata（binaryVersion、工具數、移除 Maritime 字樣）（spec: Documented Migration for Existing Installs）（驗證：中央 marketplace.json entry `name=rush`、metadata 與現況 27 工具一致）
+- [ ] 5.1 [P] 從中央 `psychquant-claude-plugins` 移除 che-transport entry 與過時的 `plugins/che-transport-mcp` 副本（self-marketplace 為唯一 canonical；既有使用者靠遷移說明改裝 rush）（spec: Documented Migration for Existing Installs）（驗證：中央 marketplace.json 已無 che-transport entry、無 plugins/che-transport-mcp 目錄）
 - [ ] 5.2 [P] 更新 che-mcps umbrella 對此 repo 的引用與 umbrella CLAUDE.md 的 submodule 表→rush（spec: Unified Rush Product Identity）（驗證：umbrella CLAUDE.md 該列為 rush、submodule 指向新名/redirect 可解析）
-- [ ] 5.3 [P] 更新頂層 `CLAUDE.md`、`README.md`、`README_zh-TW.md`→rush，加入既有安裝的遷移說明（卸載 che-transport-mcp、安裝 rush），並註記 keychain service 仍為 `che-transport-tdx`（spec: Documented Migration for Existing Installs）（驗證：README 含遷移段落、CLAUDE.md 提及 rush 且註明 keychain 維持 che-transport-tdx）
+- [x] 5.3 [P] 更新頂層 `CLAUDE.md`、`README.md`、`README_zh-TW.md`→rush，加入既有安裝的遷移說明（卸載 che-transport-mcp、安裝 rush），並註記 keychain service 仍為 `che-transport-tdx`（spec: Documented Migration for Existing Installs）（驗證：README 含遷移段落、CLAUDE.md 提及 rush 且註明 keychain 維持 che-transport-tdx）
 
 ## 6. 驗收
 

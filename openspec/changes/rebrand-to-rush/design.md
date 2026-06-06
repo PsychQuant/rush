@@ -36,7 +36,7 @@ The repository is already self-contained: it holds the Swift MCP binary source (
 ## Decisions
 
 - D1 Version: bump plugin.json version and binaryVersion to 1.0.0 to mark the Rush 1.0 product launch (behavior unchanged, but the plugin identity changes so a clean major is the launch marker).
-- D2 Central marketplace: update the central psychquant-claude-plugins entry and its plugins/che-transport-mcp shell copy to rush (rename + correct the stale metadata to match the current 27-tool reality), keeping it in sync with the self-marketplace; the self-marketplace in this repo remains canonical. This avoids orphaning users who installed via the central marketplace.
+- D2 Central marketplace: REMOVE the che-transport-mcp entry and its stale plugins/che-transport-mcp shell copy from the central psychquant-claude-plugins marketplace; the rush self-marketplace becomes the sole canonical source. Rationale: the central copy was stale (v0.6.1, '23 tools', Maritime) and keeping a duplicate shell perpetuates the multi-repo duplication the rebrand is escaping. Existing central-installed users migrate via the documented reinstall (D3).
 - D3 Migration: because the plugin name changes, Claude Code treats rush as a new plugin (no silent auto-upgrade across a name change). Document a migration note: existing users uninstall che-transport-mcp and install rush; the wrapper then auto-downloads the Rush binary.
 - D4 GitHub redirect: rely on GitHub automatic redirect for transitional URL compatibility, but update every hard reference in this change so nothing depends on the redirect long-term.
 
