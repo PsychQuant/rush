@@ -9,7 +9,7 @@
     {
       "name": "rush",
       "source": "./plugin",
-      "description": "Wraps the PsychQuant/rush binary (binaryVersion-pinned auto-download). 26 tools: rail (rail_route time-dependent + metro_find_route), transit_route (TRA↔Taipei-Metro multi-modal), rail_bus_route (rail→bus) + bus_rail_route (bus→rail, A2-live leg 1), explicit or auto-selected name-matched transfer, bus_route (direct-route bus, A2 live board + honest timetable arrival), bus/bike/air/traffic/parking. 3-tier cache TTL, NSQL confirmation discipline.",
+      "description": "Wraps the PsychQuant/rush binary (binaryVersion-pinned auto-download). 27 tools: rail (rail_route time-dependent + metro_find_route), transit_route (TRA↔Taipei-Metro multi-modal), rail_bus_route (rail→bus) + bus_rail_route (bus→rail, A2-live leg 1), explicit or auto-selected name-matched transfer, bus_route (direct-route bus, A2 live board + honest timetable arrival), bus/bike/air/traffic/parking. 3-tier cache TTL, NSQL confirmation discipline.",
       "category": "productivity"
     }
   ]

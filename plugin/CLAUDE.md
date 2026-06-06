@@ -4,14 +4,15 @@ Plugin wrapper for the `rush` MCP server (Swift, source at [PsychQuant/rush](htt
 
 ## What this plugin does
 
-Provides **21 MCP tools** querying Taiwan transport data via [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) across 6 transport modes. Read-only — no execution risk. (Maritime/ferry is not offered — TDX has no callable maritime endpoint; see PsychQuant/rush#4.)
+Provides **27 MCP tools** querying Taiwan transport data via [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) across 6 transport modes. Read-only — no execution risk. (Maritime/ferry is not offered — TDX has no callable maritime endpoint; see PsychQuant/rush#4.)
 
 ## Tools surface
 
 | Mode | Count | Tools |
 |------|-------|-------|
-| Rail | 5 | `rail_list_systems`, `rail_search_stations`, `rail_find_trains`, `rail_status_train`, `rail_status_station` |
-| Bus | 5 | `bus_search_routes`, `bus_search_stops`, `bus_find_routes`, `bus_status_arrivals`, `bus_status_positions` |
+| Rail | 7 | `rail_list_systems`, `rail_search_stations`, `rail_find_trains`, `rail_status_train`, `rail_status_station`, `metro_find_route`, `rail_route` |
+| Multi-modal | 3 | `transit_route`, `rail_bus_route`, `bus_rail_route` |
+| Bus | 6 | `bus_search_routes`, `bus_search_stops`, `bus_find_routes`, `bus_status_arrivals`, `bus_status_positions`, `bus_route` |
 | Bike | 3 | `bike_search_stations`, `bike_stations_nearby`, `bike_status_station` |
 | Air | 3 | `air_list_airports`, `air_find_flights`, `air_status_flights` |
 | Traffic | 3 | `traffic_freeway_live`, `traffic_incidents`, `traffic_cctv` |

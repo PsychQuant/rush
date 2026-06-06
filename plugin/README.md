@@ -1,15 +1,15 @@
 # rush
 
-[![Marketplace](https://img.shields.io/badge/marketplace-psychquant--claude--plugins-blue)](https://github.com/PsychQuant/psychquant-claude-plugins) [![Source](https://img.shields.io/badge/source-PsychQuant%2Fche--transport--mcp-blue)](https://github.com/PsychQuant/rush)
+[![Marketplace](https://img.shields.io/badge/marketplace-rush-blue)](https://github.com/PsychQuant/rush) [![Source](https://img.shields.io/badge/source-PsychQuant%2Frush-blue)](https://github.com/PsychQuant/rush)
 
 Claude Code plugin wrapping the `rush` Swift MCP server.
-21 tools querying Taiwan's [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) across **Rail / Bus / Bike / Air / Traffic / Parking**.
+27 tools querying Taiwan's [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) across **Rail / Bus / Bike / Air / Traffic / Parking**.
 
 ## Install
 
 ```
-/plugin marketplace add PsychQuant/psychquant-claude-plugins
-/plugin install rush@psychquant-claude-plugins
+/plugin marketplace add PsychQuant/rush
+/plugin install rush@rush
 ```
 
 The wrapper auto-downloads the signed + notarized `Rush` binary from the corresponding GitHub Release on first MCP spawn (atomic swap, sha256-verifiable).
@@ -41,7 +41,7 @@ The skill opens a **real Terminal window** running `Rush --setup` — a subcomma
 
 ## Components
 
-- **MCP server**: `transport` (auto-spawned via `.mcp.json` + wrapper)
+- **MCP server**: `rush` (auto-spawned via `.mcp.json` + wrapper)
 - **Skills**: `/rush:setup-tdx`, `/rush:today-rail`, `/rush:nearby-bike`
 - **Hooks**: `SessionStart` — single-line banner with binary version + TDX credential status
 
