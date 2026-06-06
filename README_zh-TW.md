@@ -1,8 +1,8 @@
-# che-transport-mcp
+# rush
 
 提供臺灣即時交通查詢的 MCP server，資料來源為 [TDX 運輸資料流通服務](https://tdx.transportdata.tw/)。
 
-[English README](README.md) · [Design spec](docs/superpowers/specs/2026-05-20-che-transport-mcp-design.md) · [v0.2 backlog](docs/v0.2-backlog.md)
+[English README](README.md) · [Design spec](docs/superpowers/specs/2026-05-20-rush-design.md) · [v0.2 backlog](docs/v0.2-backlog.md)
 
 ## 狀態
 
@@ -19,7 +19,7 @@ Roadmap:
 
 ```bash
 git clone <repo>
-cd che-transport-mcp
+cd rush
 make build
 make setup-tdx   # 互動式收 TDX 憑證
 ```
@@ -91,8 +91,18 @@ TDX 帳號免費註冊：<https://tdx.transportdata.tw/register>
 - **Empty ≠ error**：空結果是合法回傳，錯誤保留給系統層（auth/network/rate limit）
 - **統一 registry**：每個交通模式 append 進 `ToolRegistry`，`Server.swift` 安裝一個 `ListTools` 與一個 `CallTool` handler delegate 到 registry。新增模式只需一個 `Tools/` 檔、一個 `Models/` 檔、一行 `register()`
 
-完整架構見 [design spec](docs/superpowers/specs/2026-05-20-che-transport-mcp-design.md)。
+完整架構見 [design spec](docs/superpowers/specs/2026-05-20-rush-design.md)。
 
 ## License
 
 MIT。詳見 [LICENSE](LICENSE)。
+
+## 從 che-transport-mcp 遷移
+
+Rush 前身為 `che-transport-mcp`。plugin 名稱已改變，Claude Code 視 `rush` 為**新** plugin —— 既有安裝不會跨改名自動升級。
+
+遷移步驟：
+1. 解除安裝舊 plugin：`/plugin uninstall che-transport-mcp`
+2. 從自包含 marketplace（本 repo）或中央 marketplace 安裝 Rush：`/plugin install rush@<marketplace>`
+
+TDX 憑證原封不動沿用 —— 它存在 keychain service `che-transport-tdx`，rebrand 後保留不變，**無需重設**。GitHub repo 已改名（`PsychQuant/che-transport-mcp` → `PsychQuant/rush`）；GitHub 會自動 redirect 舊 URL。

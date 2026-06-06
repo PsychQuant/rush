@@ -27,7 +27,7 @@ Changes can be parked（暫存）— temporarily moved out of `openspec/changes/
 
 <!-- SPECTRA:END -->
 
-# CLAUDE.md — che-transport-mcp
+# CLAUDE.md — rush
 
 This file is read by LLM agents (Claude Code, Codex, etc.) that use this MCP server. Follow these conventions to avoid common pitfalls.
 
@@ -53,7 +53,7 @@ Provides 27 tools over the [TDX 運輸資料流通服務](https://tdx.transportd
 
 Current build covers **all 27 tools across 6 modes**. Per-module tool catalogue below.
 
-> **Maritime (航運/渡輪) is not covered.** TDX no longer serves it on the unified API (every `v2`/`v3` `Maritime`/`Ship` path 404s) and the legacy PTX `Ship` API is decommissioned (403 regardless of auth). The contract suite confirmed there is no callable maritime endpoint, so those tools were removed rather than ship broken. See PsychQuant/che-transport-mcp#4.
+> **Maritime (航運/渡輪) is not covered.** TDX no longer serves it on the unified API (every `v2`/`v3` `Maritime`/`Ship` path 404s) and the legacy PTX `Ship` API is decommissioned (403 regardless of auth). The contract suite confirmed there is no callable maritime endpoint, so those tools were removed rather than ship broken. See PsychQuant/rush#4.
 
 ## Interaction discipline — NSQL
 
@@ -96,9 +96,9 @@ Before calling any tool, **follow NSQL confirmation protocol**:
 ## Setup
 
 ```bash
-make setup-tdx                 # one-time, interactive (wraps CheTransportMCP --setup)
+make setup-tdx                 # one-time, interactive (wraps Rush --setup)
 # or directly, once the binary is built/installed:
-CheTransportMCP --setup
+Rush --setup
 ```
 
 `--setup` prompts for TDX `client_id` / `client_secret`（register at <https://tdx.transportdata.tw/register>），writes them to the macOS keychain under service `che-transport-tdx`, and verifies with a live OAuth round-trip. The secret prompt uses `getpass` so it never echoes.
@@ -151,7 +151,7 @@ CheTransportMCP --setup
 
 **ParkingCity** 與 BusCity 共用 22 個代碼，但 TDX 停車場資料 coverage 主要集中在六都與主要縣市；偏遠縣市可能回空陣列（empty ≠ error）。
 
-See `docs/superpowers/specs/2026-05-20-che-transport-mcp-design.md` for full design.
+See `docs/superpowers/specs/2026-05-20-rush-design.md` for full design.
 
 ## Architecture invariants
 
@@ -166,7 +166,7 @@ See `docs/superpowers/specs/2026-05-20-che-transport-mcp-design.md` for full des
 swift build              # build
 swift test               # all tests (integration skips if no keychain)
 make check-auth          # verify TDX creds work
-swift run CheTransportMCP --version
+swift run Rush --version
 ```
 
 ## Bus ETA Logger — 資料儲存位置（mini-che 外接 NVMe）

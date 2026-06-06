@@ -1,8 +1,8 @@
-# che-transport-mcp
+# rush
 
 A Model Context Protocol server providing real-time Taiwan transport queries via [TDX](https://tdx.transportdata.tw/).
 
-[繁體中文 README](README_zh-TW.md) · [Design spec](docs/superpowers/specs/2026-05-20-che-transport-mcp-design.md) · [v0.2 backlog](docs/v0.2-backlog.md)
+[繁體中文 README](README_zh-TW.md) · [Design spec](docs/superpowers/specs/2026-05-20-rush-design.md) · [v0.2 backlog](docs/v0.2-backlog.md)
 
 ## Status
 
@@ -19,7 +19,7 @@ Roadmap:
 
 ```bash
 git clone <repo>
-cd che-transport-mcp
+cd rush
 make build
 make setup-tdx   # interactive, prompts for TDX credentials
 ```
@@ -91,8 +91,18 @@ City is **required** for all Bus tools — 22 BusCity codes (`Taipei`, `NewTaipe
 - **Empty ≠ error**: empty result sets return normally; errors are system-level only.
 - **Unified registry**: each transport mode appends tools into `ToolRegistry`; `Server.swift` installs one `ListTools` and one `CallTool` handler delegating to it. Adding a new mode is one `Tools/` file + one `Models/` file + one `register()` line.
 
-See [design spec](docs/superpowers/specs/2026-05-20-che-transport-mcp-design.md) for full architecture.
+See [design spec](docs/superpowers/specs/2026-05-20-rush-design.md) for full architecture.
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Migration from che-transport-mcp
+
+Rush was previously distributed as `che-transport-mcp`. The plugin name changed, so Claude Code treats `rush` as a **new** plugin — existing installs do not auto-upgrade across the rename.
+
+To migrate:
+1. Uninstall the old plugin: `/plugin uninstall che-transport-mcp`
+2. Install Rush from its self-marketplace (this repo) or the central marketplace: `/plugin install rush@<marketplace>`
+
+Your TDX credentials carry over unchanged — they live under the keychain service `che-transport-tdx`, preserved across the rebrand, so **no re-setup is needed**. The GitHub repository was renamed (`PsychQuant/che-transport-mcp` → `PsychQuant/rush`); GitHub redirects old URLs.
