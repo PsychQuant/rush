@@ -43,12 +43,12 @@ code:
 
 ---
 ### Requirement: Preserved Tool Surface
-The rename SHALL NOT change the 27 MCP tools: their names, inputs, outputs, and routing behavior remain identical, and the in-plugin MCP server key remains transport.
+The rename SHALL NOT change the 27 MCP tools: their names, inputs, outputs, and routing behavior remain identical, and the in-plugin MCP server key remains rush.
 
 #### Scenario: Tool surface unchanged after rename
 - **WHEN** the Rush plugin is loaded
 - **THEN** the same 27 tools are exposed with the same names and parameters as before the rename
-- **AND** the in-plugin MCP server key is transport
+- **AND** the in-plugin MCP server key is rush
 
 
 <!-- @trace

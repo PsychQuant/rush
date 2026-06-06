@@ -17,7 +17,7 @@ Provides **21 MCP tools** querying Taiwan transport data via [TDX 運輸資料�
 | Traffic | 3 | `traffic_freeway_live`, `traffic_incidents`, `traffic_cctv` |
 | Parking | 2 | `parking_list_lots`, `parking_status` |
 
-MCP tool names appear as `mcp__rush__<tool>` or `mcp__plugin_rush_transport__<tool>` depending on Claude Code's registration namespace.
+MCP tool names appear as `mcp__rush__<tool>` or `mcp__plugin_rush_rush__<tool>` depending on Claude Code's registration namespace.
 
 ## Skills
 

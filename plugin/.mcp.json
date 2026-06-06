@@ -1,7 +1,7 @@
 {
-  "transport": {
+  "rush": {
     "type": "stdio",
     "command": "${CLAUDE_PLUGIN_ROOT}/bin/rush-wrapper.sh",
-    "description": "Taiwan TDX transport MCP — rail / bus / bike / air / traffic / parking"
+    "description": "Rush — Taiwan TDX transport routing MCP (rail / bus / bike / air / traffic / parking)"
   }
 }
