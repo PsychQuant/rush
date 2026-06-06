@@ -168,3 +168,24 @@ swift test               # all tests (integration skips if no keychain)
 make check-auth          # verify TDX creds work
 swift run CheTransportMCP --version
 ```
+
+## Bus ETA Logger — 資料儲存位置（mini-che 外接 NVMe）
+
+> 對應 change `openspec/changes/bus-eta-logger`（Stage 3+ 資料採集層）。logger 為獨立 **Python** 常駐程序，跑在 **mini-che（PsychQuantMini，che830621 帳號，常開）**，**與本 read-only MCP 分離**。TDX 公車動態僅滾動保留 ~2h、無任何現成歷史來源（已查證），故須自記——源頭即丟，誰先記誰獨有。
+
+**Canonical 儲存根**（mini-che 外接 USB4 NVMe：PROBOX 盒 + Kingston NV3 2TB）：
+
+```
+/Volumes/<NVMe-VOLUME>/che-transport/bus-eta/
+├── parquet/                                                       # fact 表（BCNF thin-fact：只存 FK + 量測 + 時間）
+│   ├── arrival_event/city=<code>/date=<YYYY-MM-DD>/*.parquet     #   A2 去重後到站事件（到站真值）
+│   └── eta_snapshot/city=<code>/date=<YYYY-MM-DD>/*.parquet      #   N1 ETA baseline 對照
+├── dim/                                                           # SCD Type-2 dimension（route/stop/vehicle/route-stop bridge；valid_from/valid_to/is_current）
+├── gaps/                                                          # gap marker（logger 中斷的不可回補缺漏時段）
+└── serving/                                                       # 預算表（Phase 2：P50/P80 → bus_eta_predict）
+```
+
+- `<NVMe-VOLUME>` = 外接碟實機掛載後的 volume 名，**掛載後填入本處**。
+- **掛載守衛**：碟未掛載時 logger **拒絕寫入、不可 fallback 到系統碟（256G）**。
+- 查詢引擎 = DuckDB；分析 = SSH 進 mini-che 在地跑或 rsync Parquet 回筆電（**勿隔 SMB 即時查**，延遲會咬）。
+- 涵蓋範圍：大臺北（Taipei + NewTaipei）。異地備份：Dropbox / R2。
