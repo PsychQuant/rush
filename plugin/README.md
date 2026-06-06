@@ -1,18 +1,18 @@
-# che-transport-mcp
+# rush
 
-[![Marketplace](https://img.shields.io/badge/marketplace-psychquant--claude--plugins-blue)](https://github.com/PsychQuant/psychquant-claude-plugins) [![Source](https://img.shields.io/badge/source-PsychQuant%2Fche--transport--mcp-blue)](https://github.com/PsychQuant/che-transport-mcp)
+[![Marketplace](https://img.shields.io/badge/marketplace-psychquant--claude--plugins-blue)](https://github.com/PsychQuant/psychquant-claude-plugins) [![Source](https://img.shields.io/badge/source-PsychQuant%2Fche--transport--mcp-blue)](https://github.com/PsychQuant/rush)
 
-Claude Code plugin wrapping the `che-transport-mcp` Swift MCP server.
+Claude Code plugin wrapping the `rush` Swift MCP server.
 21 tools querying Taiwan's [TDX 運輸資料流通服務](https://tdx.transportdata.tw/) across **Rail / Bus / Bike / Air / Traffic / Parking**.
 
 ## Install
 
 ```
 /plugin marketplace add PsychQuant/psychquant-claude-plugins
-/plugin install che-transport-mcp@psychquant-claude-plugins
+/plugin install rush@psychquant-claude-plugins
 ```
 
-The wrapper auto-downloads the signed + notarized `CheTransportMCP` binary from the corresponding GitHub Release on first MCP spawn (atomic swap, sha256-verifiable).
+The wrapper auto-downloads the signed + notarized `Rush` binary from the corresponding GitHub Release on first MCP spawn (atomic swap, sha256-verifiable).
 
 ## Setup (one-time, ~3 min)
 
@@ -21,10 +21,10 @@ The wrapper auto-downloads the signed + notarized `CheTransportMCP` binary from 
 3. Seed the macOS keychain:
 
 ```
-/che-transport-mcp:setup-tdx
+/rush:setup-tdx
 ```
 
-The skill opens a **real Terminal window** running `CheTransportMCP --setup` — a subcommand of the signed binary that prompts for `client_id` / `client_secret` (the secret hidden via `getpass`), writes them to keychain service `che-transport-tdx`, and verifies with a live OAuth round-trip. The secret is typed into that separate window, so it never appears in Claude Code's transcript.
+The skill opens a **real Terminal window** running `Rush --setup` — a subcommand of the signed binary that prompts for `client_id` / `client_secret` (the secret hidden via `getpass`), writes them to keychain service `che-transport-tdx`, and verifies with a live OAuth round-trip. The secret is typed into that separate window, so it never appears in Claude Code's transcript.
 
 4. **Quit Claude Code fully** (Cmd+Q) and reopen so the MCP server picks up the new credentials.
 
@@ -42,7 +42,7 @@ The skill opens a **real Terminal window** running `CheTransportMCP --setup` —
 ## Components
 
 - **MCP server**: `transport` (auto-spawned via `.mcp.json` + wrapper)
-- **Skills**: `/che-transport-mcp:setup-tdx`, `/che-transport-mcp:today-rail`, `/che-transport-mcp:nearby-bike`
+- **Skills**: `/rush:setup-tdx`, `/rush:today-rail`, `/rush:nearby-bike`
 - **Hooks**: `SessionStart` — single-line banner with binary version + TDX credential status
 
 ## Architecture
@@ -58,11 +58,11 @@ See [CLAUDE.md](./CLAUDE.md) for invariants the LLM should respect:
 
 Plugin shell changes (skills, wrapper, hooks):
 ```
-/plugin-tools:plugin-update che-transport-mcp
+/plugin-tools:plugin-update rush
 ```
 
-Binary upgrade — bump `version` in `.claude-plugin/plugin.json`; wrapper detects drift via the `~/bin/.CheTransportMCP.version` sidecar and re-downloads on next spawn.
+Binary upgrade — bump `version` in `.claude-plugin/plugin.json`; wrapper detects drift via the `~/bin/.Rush.version` sidecar and re-downloads on next spawn.
 
 ## License
 
-MIT. See [LICENSE](https://github.com/PsychQuant/che-transport-mcp/blob/main/LICENSE) in the binary source repo.
+MIT. See [LICENSE](https://github.com/PsychQuant/rush/blob/main/LICENSE) in the binary source repo.

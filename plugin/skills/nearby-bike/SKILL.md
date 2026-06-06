@@ -45,7 +45,7 @@ Render the parsed form, e.g.:
 ### Step 5: Call `bike_stations_nearby`
 
 ```
-mcp__che-transport-mcp__bike_stations_nearby(lat=<float>, lon=<float>, city=<BikeCity>, radius_m=<int>)
+mcp__rush__bike_stations_nearby(lat=<float>, lon=<float>, city=<BikeCity>, radius_m=<int>)
 ```
 
 ### Step 6: Filter by intent

@@ -1,10 +1,10 @@
 #!/bin/bash
-# SessionStart hook — emit single-line status banner for che-transport-mcp.
+# SessionStart hook — emit single-line status banner for rush.
 # Shows binary version (from sidecar) + whether TDX credentials are seeded.
 
 set -u
 
-BINARY_NAME="CheTransportMCP"
+BINARY_NAME="Rush"
 VERSION_FILE="$HOME/bin/.${BINARY_NAME}.version"
 BINARY="$HOME/bin/$BINARY_NAME"
 
@@ -23,6 +23,6 @@ if security find-generic-password -s che-transport-tdx -a client_id >/dev/null 2
    && security find-generic-password -s che-transport-tdx -a client_secret >/dev/null 2>&1; then
     echo "✓ TDX credentials present in keychain (service: che-transport-tdx)"
 else
-    echo "⚠ TDX credentials missing — run /che-transport-mcp:setup-tdx or \`make setup-tdx\` in source repo"
+    echo "⚠ TDX credentials missing — run /rush:setup-tdx or \`make setup-tdx\` in source repo"
     echo "   register free TDX account: https://tdx.transportdata.tw/register"
 fi

@@ -1,20 +1,20 @@
 ---
 name: setup-tdx
-description: Guide user through obtaining TDX (運輸資料流通服務) credentials and seeding them into the macOS keychain so che-transport-mcp tools can authenticate. Handles both first-time users with no TDX account (walks through registration + API-key retrieval) and users who already have credentials. Use when che-transport-mcp tools fail with "TDX auth failed" / "Missing TDX credentials" / "401", when the SessionStart banner shows "⚠ TDX credentials missing", or when the user asks to set up TDX / 註冊 TDX / 拿 TDX API key / 設定憑證. Credentials live under keychain service "che-transport-tdx" with accounts "client_id" and "client_secret".
+description: Guide user through obtaining TDX (運輸資料流通服務) credentials and seeding them into the macOS keychain so rush tools can authenticate. Handles both first-time users with no TDX account (walks through registration + API-key retrieval) and users who already have credentials. Use when rush tools fail with "TDX auth failed" / "Missing TDX credentials" / "401", when the SessionStart banner shows "⚠ TDX credentials missing", or when the user asks to set up TDX / 註冊 TDX / 拿 TDX API key / 設定憑證. Credentials live under keychain service "che-transport-tdx" with accounts "client_id" and "client_secret".
 allowed-tools:
   - Bash
   - Read
   - AskUserQuestion
 ---
 
-# Setup TDX credentials for che-transport-mcp
+# Setup TDX credentials for rush
 
 TDX 運輸資料流通服務 is the Taiwan government open-data API that all 21 tools in this plugin query. Free tier = 50 requests/min, no card needed.
 
 Setup has **two halves**, and it matters which one the user is stuck on:
 
 1. **Get a TDX account + API key** — a web task on the TDX portal. A brand-new user has to register and dig the key out of the member area. This skill hand-holds that (Step 3) — it is the part people actually get stuck on.
-2. **Seed the keychain** — `CheTransportMCP --setup`, an interactive flow in the signed binary that reads `client_secret` via `getpass()` (hidden), writes to keychain, and verifies with a live OAuth round-trip. This skill launches it in a **real Terminal window** so the secret never enters Claude Code's transcript.
+2. **Seed the keychain** — `Rush --setup`, an interactive flow in the signed binary that reads `client_secret` via `getpass()` (hidden), writes to keychain, and verifies with a live OAuth round-trip. This skill launches it in a **real Terminal window** so the secret never enters Claude Code's transcript.
 
 Do NOT seed the keychain via the Bash tool with the secret inline — that leaks it into the conversation log. Always go through the Terminal-window path (Step 5) or have the user run `--setup` in their own terminal.
 
@@ -94,16 +94,16 @@ che-keychain set-pair \
   --secure-account client_secret \
   --visible-label "TDX client_id" \
   --secure-label "TDX client_secret" \
-  --title "che-transport-mcp — TDX setup" \
+  --title "rush — TDX setup" \
   --explain "Free TDX account: https://tdx.transportdata.tw/register  •  會員中心 → 資料服務 → API 金鑰 → 編輯"
 ```
 
 Exit codes from the Bash tool: `0` stored, `2` user cancelled, other → error (see stderr).
 
-After exit `0`, run the OAuth verification step yourself via the CheTransportMCP binary (skip to **Step 6**):
+After exit `0`, run the OAuth verification step yourself via the Rush binary (skip to **Step 6**):
 
 ```bash
-~/bin/CheTransportMCP --check-auth
+~/bin/Rush --check-auth
 ```
 
 Tell the user clearly:
@@ -114,16 +114,16 @@ If `che-keychain` is `ABSENT`, point the user at <https://github.com/PsychQuant/
 
 ### (B) Fallback — Terminal window running the binary's built-in `--setup`
 
-If `che-keychain` isn't installed (or the user doesn't want to install it), launch the plugin's launcher shim in a real Terminal window. The shim forwards to `wrapper --setup` → `CheTransportMCP --setup` (getpass-based; CheTransportMCP v0.2.2+ also auto-detects che-keychain itself, so if che-keychain shows up later this same shim picks it up).
+If `che-keychain` isn't installed (or the user doesn't want to install it), launch the plugin's launcher shim in a real Terminal window. The shim forwards to `wrapper --setup` → `Rush --setup` (getpass-based; Rush v0.2.2+ also auto-detects che-keychain itself, so if che-keychain shows up later this same shim picks it up).
 
 Locate the shim:
 
 ```bash
-SETUP=$(ls ~/.claude/plugins/cache/*/che-transport-mcp/*/bin/setup-tdx.sh 2>/dev/null | sort -V | tail -1)
-[ -z "$SETUP" ] && SETUP=$(find ~/.claude/plugins -path '*che-transport-mcp*/bin/setup-tdx.sh' -type f 2>/dev/null | sort -V | tail -1)
+SETUP=$(ls ~/.claude/plugins/cache/*/rush/*/bin/setup-tdx.sh 2>/dev/null | sort -V | tail -1)
+[ -z "$SETUP" ] && SETUP=$(find ~/.claude/plugins -path '*rush*/bin/setup-tdx.sh' -type f 2>/dev/null | sort -V | tail -1)
 ```
 
-If still empty, the plugin install is broken — tell the user to `/plugin install che-transport-mcp@psychquant-claude-plugins`.
+If still empty, the plugin install is broken — tell the user to `/plugin install rush@psychquant-claude-plugins`.
 
 Launch:
 
@@ -161,13 +161,13 @@ Even after credentials verify, the MCP server already spawned by the current Cla
 If `open -a Terminal` is unavailable (SSH session, headless), tell the user to run the binary's `--setup` directly in whatever interactive shell they have. Emphasize: run it in a **terminal, not in Claude Code chat** — the secret prompt needs a TTY.
 
 ```bash
-~/bin/CheTransportMCP --setup
+~/bin/Rush --setup
 ```
 
-Same interactive flow, no shell-script middleman. If the binary isn't at `~/bin/CheTransportMCP` yet, run the wrapper instead (it downloads then forwards):
+Same interactive flow, no shell-script middleman. If the binary isn't at `~/bin/Rush` yet, run the wrapper instead (it downloads then forwards):
 
 ```bash
-~/.claude/plugins/cache/*/che-transport-mcp/*/bin/che-transport-mcp-wrapper.sh --setup
+~/.claude/plugins/cache/*/rush/*/bin/rush-wrapper.sh --setup
 ```
 
 ## When NOT to invoke this skill

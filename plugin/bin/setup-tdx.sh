@@ -9,4 +9,4 @@
 #
 # Run interactively in a real Terminal window — the binary's getpass() prompt
 # needs a TTY.
-exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/che-transport-mcp-wrapper.sh" --setup
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/rush-wrapper.sh" --setup

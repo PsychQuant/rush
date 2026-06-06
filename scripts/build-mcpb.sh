@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scripts/build-mcpb.sh
-# Build + (optionally) sign + (optionally) notarize + package CheTransportMCP into a .mcpb.
+# Build + (optionally) sign + (optionally) notarize + package Rush into a .mcpb.
 #
 # Modes:
 #   default                                — universal binary + ad-hoc sign + pack
@@ -12,21 +12,21 @@
 #   NOTARY_PROFILE       — keychain profile name (see README "Signing & Notarization")
 #
 # Output:
-#   mcpb/server/CheTransportMCP         — universal binary (arm64 + x86_64)
-#   mcpb/server/CheTransportMCP.sha256  — hash file for --self-update integrity check
-#   mcpb/che-transport-mcp-<version>.mcpb        — Claude Desktop one-click bundle
-#   mcpb/che-transport-mcp-<version>.mcpb.sha256 — bundle hash
+#   mcpb/server/Rush         — universal binary (arm64 + x86_64)
+#   mcpb/server/Rush.sha256  — hash file for --self-update integrity check
+#   mcpb/rush-<version>.mcpb        — Claude Desktop one-click bundle
+#   mcpb/rush-<version>.mcpb.sha256 — bundle hash
 
 set -euo pipefail
 
-BINARY_NAME="CheTransportMCP"
-PLUGIN_NAME="che-transport-mcp"
+BINARY_NAME="Rush"
+PLUGIN_NAME="rush"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MCPB_DIR="$REPO_ROOT/mcpb"
 SERVER_DIR="$MCPB_DIR/server"
 
 # Step 0: parse version from source. AppVersion.current is the single source of truth.
-SOURCE_VERSION=$(grep -E 'static let version = "' "$REPO_ROOT/Sources/CheTransportMCP/Version.swift" | sed -E 's/.*"([^"]+)".*/\1/')
+SOURCE_VERSION=$(grep -E 'static let version = "' "$REPO_ROOT/Sources/Rush/Version.swift" | sed -E 's/.*"([^"]+)".*/\1/')
 if [[ -z "$SOURCE_VERSION" ]]; then
     echo "✗ Could not parse AppVersion.version from Version.swift" >&2
     exit 1

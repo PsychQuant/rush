@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "CheTransportMCP",
+    name: "Rush",
     platforms: [
         .macOS(.v13)
     ],
@@ -11,25 +11,25 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "CheTransportMCP",
+            name: "Rush",
             dependencies: [
                 .product(name: "MCP", package: "swift-sdk")
             ],
-            path: "Sources/CheTransportMCP",
+            path: "Sources/Rush",
             exclude: ["Info.plist"],
             linkerSettings: [
                 .unsafeFlags([
                     "-Xlinker", "-sectcreate",
                     "-Xlinker", "__TEXT",
                     "-Xlinker", "__info_plist",
-                    "-Xlinker", "Sources/CheTransportMCP/Info.plist"
+                    "-Xlinker", "Sources/Rush/Info.plist"
                 ])
             ]
         ),
         .testTarget(
-            name: "CheTransportMCPTests",
-            dependencies: ["CheTransportMCP"],
-            path: "Tests/CheTransportMCPTests",
+            name: "RushTests",
+            dependencies: ["Rush"],
+            path: "Tests/RushTests",
             resources: [.process("Fixtures")]
         )
     ]

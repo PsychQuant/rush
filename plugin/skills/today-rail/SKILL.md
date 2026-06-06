@@ -37,7 +37,7 @@ Extract:
 If either station name is ambiguous (matches multiple stations) or you can't be sure of the system, call:
 
 ```
-mcp__che-transport-mcp__rail_search_stations(query="<name>", system=<TRA|THSR|...>)
+mcp__rush__rail_search_stations(query="<name>", system=<TRA|THSR|...>)
 ```
 
 Show the user the matches and ask them to pick if >1 result.
@@ -53,7 +53,7 @@ Wait for "對 / 好 / yes / 確認". Don't preemptively call.
 ### Step 4: Call `rail_find_trains`
 
 ```
-mcp__che-transport-mcp__rail_find_trains(from=<ID>, to=<ID>, system=<TRA|THSR>, date=YYYY-MM-DD)
+mcp__rush__rail_find_trains(from=<ID>, to=<ID>, system=<TRA|THSR>, date=YYYY-MM-DD)
 ```
 
 ### Step 5: Filter + format
@@ -70,7 +70,7 @@ For each train show: train_no, 車種, 起站 dep, 迄站 arr, 行車時間, 票
 If user explicitly asks "誤點" / "delayed" / "real-time" or the train they're picking departs within the next hour, additionally call:
 
 ```
-mcp__che-transport-mcp__rail_status_train(train_no=<N>, system=<TRA|THSR>)
+mcp__rush__rail_status_train(train_no=<N>, system=<TRA|THSR>)
 ```
 
 …and overlay delay info on the picked train.

@@ -30,11 +30,11 @@ assert_contains() {
 # Case 1: binary present + sidecar → "✓ … vX installed".
 tmp_present="$(mktemp -d)"
 mkdir -p "$tmp_present/bin"
-printf '#!/bin/sh\n' > "$tmp_present/bin/CheTransportMCP"
-chmod +x "$tmp_present/bin/CheTransportMCP"
-echo "0.2.2" > "$tmp_present/bin/.CheTransportMCP.version"
+printf '#!/bin/sh\n' > "$tmp_present/bin/Rush"
+chmod +x "$tmp_present/bin/Rush"
+echo "0.2.2" > "$tmp_present/bin/.Rush.version"
 out_present="$(HOME="$tmp_present" bash "$HOOK" 2>&1)"
-assert_contains "$out_present" "✓ CheTransportMCP v0.2.2 installed" "binary present → installed banner"
+assert_contains "$out_present" "✓ Rush v0.2.2 installed" "binary present → installed banner"
 rm -rf "$tmp_present"
 
 # Case 2: empty HOME → "… not installed".

@@ -1,5 +1,5 @@
 # Makefile
-BINARY_NAME := CheTransportMCP
+BINARY_NAME := Rush
 
 .PHONY: build test setup-tdx check-auth release release-signed verify-release-ready install clean
 
@@ -10,16 +10,16 @@ test:
 	swift test
 
 setup-tdx: build
-	@.build/debug/CheTransportMCP --setup
+	@.build/debug/Rush --setup
 
 check-auth: build
-	@.build/debug/CheTransportMCP --check-auth
+	@.build/debug/Rush --check-auth
 
 # Soft pre-flight: warn (not fail) on drift between AppVersion.version and the
 # latest git tag. Pre-release work expects version to be ahead of tag; this
 # target makes the state visible so maintainer can decide whether to bump or tag.
 verify-release-ready:
-	@SOURCE_VERSION=$$(grep -E 'static let version = "' Sources/CheTransportMCP/Version.swift | sed -E 's/.*"([^"]+)".*/\1/'); \
+	@SOURCE_VERSION=$$(grep -E 'static let version = "' Sources/Rush/Version.swift | sed -E 's/.*"([^"]+)".*/\1/'); \
 	LATEST_TAG=$$(git tag --sort=-creatordate | head -1); \
 	if [ -z "$$SOURCE_VERSION" ]; then \
 	    echo "✗ Could not parse AppVersion.version from Version.swift" >&2; \

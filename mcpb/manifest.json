@@ -1,8 +1,8 @@
 {
   "manifest_version": "0.3",
-  "name": "che-transport-mcp",
+  "name": "rush",
   "display_name": "Taiwan Transport (TDX)",
-  "version": "0.11.0",
+  "version": "1.0.0",
   "description": "Real-time Taiwan transport queries via TDX — rail, bus, bike, air, traffic, parking",
   "long_description": "27 MCP tools covering Taiwan's public-transport data across 6 modes: Rail (TRA / THSR / 6 metros), Bus (22 cities), Bike (YouBike 1.0 + 2.0), Air (FIDS), Traffic (freeway live + incidents + CCTV), and Parking (off-street). Backed by the TDX 運輸資料流通服務 API (free tier, 50 req/min). Read-only — no execution risk. Requires a free TDX account; run `make setup-tdx` after install.",
   "author": {
@@ -11,10 +11,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/PsychQuant/che-transport-mcp.git"
+    "url": "https://github.com/PsychQuant/rush.git"
   },
-  "homepage": "https://github.com/PsychQuant/che-transport-mcp",
-  "support": "https://github.com/PsychQuant/che-transport-mcp/issues",
+  "homepage": "https://github.com/PsychQuant/rush",
+  "support": "https://github.com/PsychQuant/rush/issues",
   "keywords": [
     "taiwan",
     "transport",
@@ -29,9 +29,9 @@
   "license": "MIT",
   "server": {
     "type": "binary",
-    "entry_point": "server/CheTransportMCP",
+    "entry_point": "server/Rush",
     "mcp_config": {
-      "command": "${__dirname}/server/CheTransportMCP",
+      "command": "${__dirname}/server/Rush",
       "args": [],
       "env": {}
     }
