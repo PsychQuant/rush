@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-06-06
+
+### Changed
+- **Rebranded che-transport-mcp → Rush.** Binary `Rush`, plugin/marketplace `rush`; self-contained product repo (MCP source + plugin shell + marketplace catalog). Repo renamed PsychQuant/che-transport-mcp → PsychQuant/rush (GitHub redirect covers old URLs).
+- No change to the 27-tool surface, routing behavior, or 3-tier cache; in-plugin MCP server key `transport` and keychain service `che-transport-tdx` preserved (existing TDX credentials keep working).
+- Migration: the plugin name changed, so existing installs reinstall under `rush` (no silent auto-upgrade across the name change).
+
 ## [0.6.1] — 2026-06-01
 
 ### Fixed
