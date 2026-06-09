@@ -152,6 +152,7 @@ Rush --setup
 **ParkingCity** 與 BusCity 共用 22 個代碼，但 TDX 停車場資料 coverage 主要集中在六都與主要縣市；偏遠縣市可能回空陣列（empty ≠ error）。
 
 See `docs/superpowers/specs/2026-05-20-rush-design.md` for full design.
+Bus ETA prediction methodology (metric = time in seconds, covariates, ceiling): `docs/bus-eta-prediction.md`.
 
 ## Architecture invariants
 
