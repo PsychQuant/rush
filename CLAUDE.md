@@ -191,7 +191,7 @@ swift run Rush --version
 - **掛載守衛**：碟未掛載時 logger **拒絕寫入、不可 fallback 到系統碟（256G）**。
 - 查詢引擎 = DuckDB；分析 = SSH 進 mini-che 在地跑或 rsync Parquet 回筆電（**勿隔 SMB 即時查**，延遲會咬）。
 - **對齊分析**：`analysis/spine.sql` 定義 DuckDB views（a1/a2/n1/arrivals）+ ASOF marts：`trajectory(t0,t1,step_sec)`（車軌跡，A1 位置前向填）、`prediction_error`（每筆到站 vs N1 預測的誤差；N1 無 plate 故 join 在 route/dir/stop）。mini 無 duckdb CLI → 用 logger venv 的 python duckdb（已裝 `pytz` 供 timestamptz 輸出）：`con.execute(open('analysis/spine.sql').read())`。
-- **路線視覺化**：`analysis/marey.py <route>`（站序 Marey 時空圖，`--normalize` 出 run-time profile）、`analysis/spacetime.py <route>`（A1 GPS 投影到路線 Shape 的**真距離** distance-time，slope=真 km/h；含清洗：濾 `duty_status=1`&`bus_status=0`→投影丟 >200m 離線→切趟→覆蓋率≥80%&前進率≥80%，`--keep-anomalies` 灰線疊示被丟趟）。產生的 PNG 在 `analysis/output/`（gitignored）。
+- **路線視覺化**：`analysis/marey.py <route>`（站序 Marey 時空圖，`--normalize` 出 run-time profile）、`analysis/spacetime.py <route>`（A1 GPS 投影到路線 Shape 的**真距離** distance-time，slope=真 km/h；含清洗：濾 `duty_status=1`&`bus_status=0`→投影丟 >200m 離線→切趟→覆蓋率≥80%&前進率≥80%，`--keep-anomalies` 灰線疊示被丟趟）、`analysis/features_gps.py <route>`（段速熱圖=內生壅塞圖 + 前車 headway covariate）。產生的 PNG 在 `analysis/output/`（gitignored）。
 - **採集 feeds（3 條，各自節奏）**：`A2`(30s)→`arrival_event`（到站真值，去重）／`A1`(10s)→`vehicle_position`（即時車輛 GPS 位置，全量不去重；A2/N1 都不帶座標，位置只在 A1）／`N1`(120s)→`eta_snapshot`（ETA 預測基準）。A1 取 10s 是對應實測 TDX GPS 更新率 ~15–20s（再細是重複、源頭沒那麼細）。
 - 涵蓋範圍：大臺北（Taipei + NewTaipei）。異地備份：Dropbox / R2。
 
