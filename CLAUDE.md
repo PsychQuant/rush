@@ -176,7 +176,7 @@ swift run Rush --version
 **Canonical 儲存根**（mini-che 外接 USB4 NVMe：PROBOX 盒 + Kingston NV3 2TB）：
 
 ```
-/Volumes/<NVMe-VOLUME>/che-transport/bus-eta/
+/Volumes/mini-2TB-SSD/che-transport/bus-eta/
 ├── parquet/                                                       # fact 表（BCNF thin-fact：只存 FK + 量測 + 時間）
 │   ├── arrival_event/city=<code>/date=<YYYY-MM-DD>/*.parquet     #   A2 去重後到站事件（到站真值）
 │   └── eta_snapshot/city=<code>/date=<YYYY-MM-DD>/*.parquet      #   N1 ETA baseline 對照
@@ -185,7 +185,21 @@ swift run Rush --version
 └── serving/                                                       # 預算表（Phase 2：P50/P80 → bus_eta_predict）
 ```
 
-- `<NVMe-VOLUME>` = 外接碟實機掛載後的 volume 名，**掛載後填入本處**。
+- **Volume 名 = `mini-2TB-SSD`**（Kingston NV3 2TB；已掛載於 `/Volumes/mini-2TB-SSD`，`diskutil` 報 PCI-Express、Removable: Fixed）。
 - **掛載守衛**：碟未掛載時 logger **拒絕寫入、不可 fallback 到系統碟（256G）**。
 - 查詢引擎 = DuckDB；分析 = SSH 進 mini-che 在地跑或 rsync Parquet 回筆電（**勿隔 SMB 即時查**，延遲會咬）。
 - 涵蓋範圍：大臺北（Taipei + NewTaipei）。異地備份：Dropbox / R2。
+
+### 部署現況（2026-06-09 起跑）
+
+logger 已部署並運行於 mini-che，capture-feasibility 7 天 run 進行中（Taipei + NewTaipei）。部署踩過三道 macOS 關卡，操作需求記錄如下：
+
+| 項目 | 值／路徑 | 為什麼 |
+|------|----------|--------|
+| launchd agent | `~/Library/LaunchAgents/tw.psychquant.bus-eta-logger.plist`，GUI domain 載入（`launchctl bootstrap gui/$(id -u) <plist>`）| RunAtLoad + KeepAlive 常駐；env 帶 `BUS_ETA_VOLUME=/Volumes/mini-2TB-SSD` + `BUS_ETA_DATA_ROOT=.../parquet` |
+| TDX 憑證 | **600 本機檔** `~/.config/bus-eta-logger/tdx.json`（`{client_id, client_secret}`），**非 keychain** | launchd 讀 keychain 會卡授權對話框（classic ACL + partition list 兩道閘都認 che-keychain、不認 launchd 的 python）。改檔案 daemon 讀取永不跳框。poller `_load_creds()` 優先讀此檔、fallback keychain；檔不進 git／不上 NVMe |
+| Full Disk Access | 授 FDA 給 `/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3.9` | macOS TCC 擋 launchd 的 python 寫 `/Volumes` 外接卷宗（EPERM）；ssh 能寫（sshd 已授權）但 launchd 不行，須在「系統設定 → 隱私權 → 完整取用磁碟」加該 python |
+
+- **重啟 agent**：`ssh mini-che 'launchctl kickstart -k gui/$(id -u)/tw.psychquant.bus-eta-logger'`
+- **看狀態**：`ssh mini-che 'launchctl list | grep bus-eta; tail ~/Library/Logs/bus-eta-logger.err.log'`
+- **查資料量**：`ssh mini-che 'find /Volumes/mini-2TB-SSD/che-transport/bus-eta/parquet -name "*.parquet" | wc -l'`
