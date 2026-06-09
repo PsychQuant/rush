@@ -14,3 +14,5 @@ openspec/.vector-search.db*
 
 # generated analysis plots
 analysis/output/
+
+__pycache__/
