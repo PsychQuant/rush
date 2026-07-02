@@ -11,8 +11,3 @@ mcpb/*.mcpb.sha256
 mcpb/notarize-*.zip
 .spectra/
 openspec/.vector-search.db*
-
-# generated analysis plots
-analysis/output/
-
-__pycache__/

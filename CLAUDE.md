@@ -152,7 +152,7 @@ Rush --setup
 **ParkingCity** 與 BusCity 共用 22 個代碼，但 TDX 停車場資料 coverage 主要集中在六都與主要縣市；偏遠縣市可能回空陣列（empty ≠ error）。
 
 See `docs/superpowers/specs/2026-05-20-rush-design.md` for full design.
-Bus ETA prediction methodology (metric = time in seconds, covariates, ceiling): `docs/bus-eta-prediction.md`.
+Bus ETA prediction methodology (metric = time in seconds, covariates, ceiling): `docs/bus-eta-prediction.md` in [PsychQuant/che-transport-data](https://github.com/PsychQuant/che-transport-data).
 
 ## Architecture invariants
 
@@ -170,50 +170,6 @@ make check-auth          # verify TDX creds work
 swift run Rush --version
 ```
 
-## Bus ETA Logger — 資料儲存位置（mini-che 外接 NVMe）
+## Data platform（已分拆）
 
-> 對應 change `openspec/changes/bus-eta-logger`（Stage 3+ 資料採集層）。logger 為獨立 **Python** 常駐程序，跑在 **mini-che（PsychQuantMini，che830621 帳號，常開）**，**與本 read-only MCP 分離**。TDX 公車動態僅滾動保留 ~2h、無任何現成歷史來源（已查證），故須自記——源頭即丟，誰先記誰獨有。
-
-**Canonical 儲存根**（mini-che 外接 USB4 NVMe：PROBOX 盒 + Kingston NV3 2TB）：
-
-```
-/Volumes/mini-2TB-SSD/che-transport/bus-eta/
-├── parquet/                                                       # fact 表（BCNF thin-fact：只存 FK + 量測 + 時間）
-│   ├── arrival_event/city=<code>/date=<YYYY-MM-DD>/*.parquet     #   A2 去重後到站事件（到站真值）
-│   ├── vehicle_position/city=<code>/date=<YYYY-MM-DD>/*.parquet  #   A1 即時車輛 GPS 位置（全量，不去重）
-│   └── eta_snapshot/city=<code>/date=<YYYY-MM-DD>/*.parquet      #   N1 ETA baseline 對照
-├── dim/                                                           # SCD Type-2 dimension（route/stop/vehicle/route-stop bridge；valid_from/valid_to/is_current）
-├── gaps/                                                          # gap marker（logger 中斷的不可回補缺漏時段）
-└── serving/                                                       # 預算表（Phase 2：P50/P80 → bus_eta_predict）
-```
-
-- **Volume 名 = `mini-2TB-SSD`**（Kingston NV3 2TB；已掛載於 `/Volumes/mini-2TB-SSD`，`diskutil` 報 PCI-Express、Removable: Fixed）。
-- **掛載守衛**：碟未掛載時 logger **拒絕寫入、不可 fallback 到系統碟（256G）**。
-- 查詢引擎 = DuckDB；分析 = SSH 進 mini-che 在地跑或 rsync Parquet 回筆電（**勿隔 SMB 即時查**，延遲會咬）。
-- **對齊分析**：`analysis/spine.sql` 定義 DuckDB views（a1/a2/n1/arrivals）+ ASOF marts：`trajectory(t0,t1,step_sec)`（車軌跡，A1 位置前向填）、`prediction_error`（每筆到站 vs N1 預測的誤差；N1 無 plate 故 join 在 route/dir/stop）。mini 無 duckdb CLI → 用 logger venv 的 python duckdb（已裝 `pytz` 供 timestamptz 輸出）：`con.execute(open('analysis/spine.sql').read())`。
-- **路線視覺化**：`analysis/marey.py <route>`（站序 Marey 時空圖，`--normalize` 出 run-time profile）、`analysis/spacetime.py <route>`（A1 GPS 投影到路線 Shape 的**真距離** distance-time，slope=真 km/h；含清洗：濾 `duty_status=1`&`bus_status=0`→投影丟 >200m 離線→切趟→覆蓋率≥80%&前進率≥80%，`--keep-anomalies` 灰線疊示被丟趟）、`analysis/features_gps.py <route>`（段速熱圖=內生壅塞圖 + 前車 headway covariate）。產生的 PNG 在 `analysis/output/`（gitignored）。
-- **採集 feeds（3 條，各自節奏）**：`A2`(30s)→`arrival_event`（到站真值，去重）／`A1`(10s)→`vehicle_position`（即時車輛 GPS 位置，全量不去重；A2/N1 都不帶座標，位置只在 A1）／`N1`(120s)→`eta_snapshot`（ETA 預測基準）。A1 取 10s 是對應實測 TDX GPS 更新率 ~15–20s（再細是重複、源頭沒那麼細）。
-- 涵蓋範圍：大臺北（Taipei + NewTaipei）。異地備份：Dropbox / R2。
-
-### 部署現況（2026-06-09 起跑）
-
-logger 已部署並運行於 mini-che，capture-feasibility 7 天 run 進行中（Taipei + NewTaipei）。部署踩過三道 macOS 關卡，操作需求記錄如下：
-
-| 項目 | 值／路徑 | 為什麼 |
-|------|----------|--------|
-| launchd agent | `~/Library/LaunchAgents/tw.psychquant.bus-eta-logger.plist`，GUI domain 載入（`launchctl bootstrap gui/$(id -u) <plist>`）| RunAtLoad + KeepAlive 常駐；env 帶 `BUS_ETA_VOLUME=/Volumes/mini-2TB-SSD` + `BUS_ETA_DATA_ROOT=.../parquet` |
-| TDX 憑證 | **600 本機檔** `~/.config/bus-eta-logger/tdx.json`（`{client_id, client_secret}`），**非 keychain** | launchd 讀 keychain 會卡授權對話框（classic ACL + partition list 兩道閘都認 che-keychain、不認 launchd 的 python）。改檔案 daemon 讀取永不跳框。poller `_load_creds()` 優先讀此檔、fallback keychain；檔不進 git／不上 NVMe |
-| Full Disk Access | 授 FDA 給 `/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3.9` | macOS TCC 擋 launchd 的 python 寫 `/Volumes` 外接卷宗（EPERM）；ssh 能寫（sshd 已授權）但 launchd 不行，須在「系統設定 → 隱私權 → 完整取用磁碟」加該 python |
-
-- **2026-06-10 事故**：TDX 端憑證失效（舊免費方案落日）→ 02:21 起 token 400、poller crash-loop 13h+。已修：startup/refresh token 失敗改 60s 重試（**每次重讀憑證檔**，換 key 免重啟自癒）、cycle 包非致命護欄；缺口由 gap marker 誠實記錄（37.2h）。06-11 15:35 訂閱銅級後自癒復跑。
-- **重啟 agent**：`ssh mini-che 'launchctl kickstart -k gui/$(id -u)/tw.psychquant.bus-eta-logger'`
-- **看狀態**：`ssh mini-che 'launchctl list | grep bus-eta; tail ~/Library/Logs/bus-eta-logger.err.log'`
-- **查資料量**：`ssh mini-che 'find /Volumes/mini-2TB-SSD/che-transport/bus-eta/parquet -name "*.parquet" | wc -l'`
-
-### 天氣 logger（第二個 collector，2026-06-12 起跑）
-
-`weather-logger/`（獨立常駐，同 mini-che）：CWA `O-A0003-001` 自動氣象站觀測（雨量/溫度/濕度/風）**全台 ~362 站**，每 10 分鐘 → `/Volumes/mini-2TB-SSD/che-transport/weather/parquet/obs/county=<>/date=<>/`。為 ETA 的天氣 covariate；分析時以「離路線最近站」對齊（非 coarse 縣市）。launchd agent `tw.psychquant.weather-logger`（GUI domain、reuse bus-eta venv + 已授 FDA 的 python）。
-
-- **憑證在 keychain**（非檔案）：`che-keychain set --daemon`（allow-all ACL）**＋** `security set-generic-password-partition-list -S apple-tool:,apple: -s che-weather-cwa -a api_key`（partition gate）兩道齊開，launchd 才免提示讀。這是「launchd 讀 keychain」的驗證配方——`--daemon` 只開 ACL、partition-list 要登入密碼另設（`SecAccess` API 設不了 partition）。`_load_key` keychain-first（5s timeout）→ 檔案 → env fallback。
-- **重啟**：`ssh mini-che 'launchctl kickstart -k gui/$(id -u)/tw.psychquant.weather-logger'`
-- v2（未做）：F-D0047 鄉鎮預報（含 issue-time 的無洩漏 predict-time covariate）
+bus-eta logger、weather-logger、analysis、DuckDB warehouse 已於 2026-07-02 分拆至獨立 repo **[PsychQuant/che-transport-data](https://github.com/PsychQuant/che-transport-data)**（git 歷史完整保留；分拆紀錄見 rush#10）。採集器仍跑在 mini-che、與本 read-only MCP 共用 TDX 帳號（銅級訂閱，見上方 Rate limit）。部署、儲存結構、分析工具文件都在該 repo 的 CLAUDE.md。
