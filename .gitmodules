@@ -1,0 +1,3 @@
+[submodule "repos/che-transport-data"]
+	path = repos/che-transport-data
+	url = https://github.com/PsychQuant/che-transport-data.git

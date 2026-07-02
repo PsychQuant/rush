@@ -170,8 +170,10 @@ make check-auth          # verify TDX creds work
 swift run Rush --version
 ```
 
-## Data platform（已分拆）
+## Data platform（`repos/che-transport-data` submodule）
 
-bus-eta logger、weather-logger、analysis、DuckDB warehouse 已於 2026-07-02 分拆至獨立 repo **[PsychQuant/che-transport-data](https://github.com/PsychQuant/che-transport-data)**（git 歷史完整保留；分拆紀錄見 rush#10）。採集器仍跑在 mini-che、與本 read-only MCP 共用 TDX 帳號（銅級訂閱，見上方 Rate limit）。部署、儲存結構、分析工具文件都在該 repo 的 CLAUDE.md。
+bus-eta logger、weather-logger、analysis、DuckDB warehouse 已於 2026-07-02 分拆至 **[PsychQuant/che-transport-data](https://github.com/PsychQuant/che-transport-data)**（git 歷史完整保留；分拆紀錄見 rush#10），並以 **submodule 掛在本 repo `repos/che-transport-data`**（兩 repo 皆 PUBLIC——同日稍早的「勿掛 submodule」判斷基於它還是 private，轉 public 後不成立，使用者裁定掛載；公開動機：schema/SQL 展示資料蒐集工作）。欄位級文件見該 repo `CODEBOOK.md`。
 
-> **勿掛回 submodule（刻意決策，2026-07-02）**：che-transport-data 是刻意 standalone，**不要**把它加成本 repo（或 che-mcps）的 submodule。理由：(1) 本 repo PUBLIC、該 repo PRIVATE——`git clone --recurse-submodules` 對外部使用者直接失敗，且 `.gitmodules` 公開洩漏私有 infra 路徑；(2) 兩側零 code/build 依賴，submodule 只是無功能的指標；(3) submodule 的正確時機是「真實消費依賴 + 版本 pin」——未來 bus-ETA 預測論文專案才是正確的掛載者（在該論文 repo 的 `repos/` 下 pin 版本求重現）。跨 repo 導引用本段 pointer + issue 互鏈即可。
+- 採集器仍跑在 mini-che、與本 read-only MCP 共用 TDX 帳號（銅級訂閱，見上方 Rate limit）；mini 部署是**獨立直接 clone**（`~/che-transport-data`），不經本 submodule。
+- 更新 submodule 指標：`git -C repos/che-transport-data pull && git add repos/che-transport-data && git commit`。
+- 兩側零 code/build 依賴不變——submodule 是組織/版本 pin，不是 build 依賴。
